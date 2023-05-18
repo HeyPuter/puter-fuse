@@ -1,7 +1,11 @@
 package main
 
 import (
-	"github.com/hanwen/go-fuse/v2/fs"
+	"fmt"
+	"io/ioutil"
+	"os"
+
+	"github.com/HeyPuter/puter-fuse-go/putersdk"
 )
 
 type PuterFSFile struct {
@@ -22,10 +26,36 @@ func (fh *PuterFSFile) ReplaceData(newData []byte) {
 }
 
 func main() {
-	server, err := fs.Mount("/tmp/mnt", &PuterFSDirectoryInode{}, &fs.Options{})
+	args := os.Args[1:]
+	fmt.Println(args)
+
+	token, err := ioutil.ReadFile("token")
 	if err != nil {
 		panic(err)
 	}
-	// start serving the file system
-	server.Wait()
+
+	fmt.Printf("token: |%s|\n", string(token))
+
+	sdk := &putersdk.PuterSDK{
+		PuterAuthToken: string(token),
+	}
+	sdk.Init()
+
+	// items, err := sdk.Readdir("/")
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// jsonBytes, err := json.Marshal(items)
+
+	jsonBytes, err := sdk.Read("/ed/test.txt")
+	fmt.Println(string(jsonBytes))
+	/*
+		server, err := fs.Mount("/tmp/mnt", &PuterFSDirectoryInode{}, &fs.Options{})
+		if err != nil {
+			panic(err)
+		}
+		// start serving the file system
+		server.Wait()
+	*/
 }
