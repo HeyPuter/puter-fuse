@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/HeyPuter/puter-fuse-go/puterfs"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
+	"github.com/hanwen/go-fuse/v2/fs"
 )
 
 type PuterFSFile struct {
@@ -49,13 +51,24 @@ func main() {
 	// jsonBytes, err := json.Marshal(items)
 
 	jsonBytes, err := sdk.Read("/ed/test.txt")
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println(string(jsonBytes))
-	/*
-		server, err := fs.Mount("/tmp/mnt", &PuterFSDirectoryInode{}, &fs.Options{})
-		if err != nil {
-			panic(err)
-		}
-		// start serving the file system
-		server.Wait()
-	*/
+
+	puterFS := &puterfs.Filesystem{
+		SDK: sdk,
+	}
+	puterFS.Init()
+
+	rootNode := &puterfs.RootNode{}
+	rootNode.Filesystem = puterFS
+	rootNode.Init()
+
+	server, err := fs.Mount("/tmp/mnt", rootNode, &fs.Options{})
+	if err != nil {
+		panic(err)
+	}
+	// start serving the file system
+	server.Wait()
 }

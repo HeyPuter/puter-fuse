@@ -9,6 +9,7 @@ import (
 )
 
 func (sdk *PuterSDK) Readdir(path string) (items []CloudItem, err error) {
+	fmt.Printf("readdir(%s)\n", path)
 	payload := map[string]interface{}{}
 	payload["path"] = path
 
@@ -43,7 +44,7 @@ func (sdk *PuterSDK) Readdir(path string) (items []CloudItem, err error) {
 	if err != nil {
 		return
 	}
-	fmt.Println("body?: " + string(body))
+
 	err = json.Unmarshal(body, &items)
 	return
 }
