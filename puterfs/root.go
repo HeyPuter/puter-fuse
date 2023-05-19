@@ -2,6 +2,7 @@ package puterfs
 
 import (
 	"context"
+	"fmt"
 	"syscall"
 	"time"
 
@@ -43,6 +44,7 @@ func (n *RootNode) syncItems() error {
 func (n *RootNode) Lookup(
 	ctx context.Context, name string, out *fuse.EntryOut,
 ) (*fs.Inode, syscall.Errno) {
+	fmt.Printf("root::lookup(%s)\n", name)
 	n.syncItems()
 
 	var foundItem putersdk.CloudItem
@@ -57,8 +59,7 @@ func (n *RootNode) Lookup(
 	}
 
 	if !found {
-		// TODO: return an error code?
-		return nil, 0
+		return nil, syscall.ENOENT
 	}
 	foundItemNode := n.Filesystem.GetNodeFromCloudItem(foundItem)
 

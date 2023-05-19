@@ -2,6 +2,7 @@ package puterfs
 
 import (
 	"context"
+	"fmt"
 	"syscall"
 	"time"
 
@@ -42,6 +43,7 @@ func (n *DirectoryNode) syncItems() error {
 func (n *DirectoryNode) Lookup(
 	ctx context.Context, name string, out *fuse.EntryOut,
 ) (*fs.Inode, syscall.Errno) {
+	fmt.Printf("dir::lookup(%s)\n", name)
 	n.syncItems()
 
 	var foundItem putersdk.CloudItem
@@ -57,7 +59,7 @@ func (n *DirectoryNode) Lookup(
 
 	if !found {
 		// TODO: return an error code?
-		return nil, 0
+		return nil, syscall.ENOENT
 	}
 	foundItemNode := n.Filesystem.GetNodeFromCloudItem(foundItem)
 
@@ -88,4 +90,18 @@ func (n *DirectoryNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errn
 		entries = append(entries, entry)
 	}
 	return fs.NewListDirStream(entries), 0
+}
+
+func (n *DirectoryNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+	out.Size = 4096
+
+	// TODO: load from configuration
+	// out.Mode = 0644
+	out.Mode = 0755
+
+	// TODO: load from configuration
+	out.Uid = 1000
+	out.Gid = 1000
+
+	return 0
 }

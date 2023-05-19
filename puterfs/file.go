@@ -42,6 +42,29 @@ func (n *FileNode) Read(
 	return fuse.ReadResultData(dest), 0
 }
 
+func (n *FileNode) Write(
+	ctx context.Context,
+	f fs.FileHandle,
+	data []byte, off int64,
+) (uint32, syscall.Errno) {
+	fileContents, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
+	if err != nil {
+		return 0, syscall.EIO
+	}
+	if int64(len(fileContents)) < off+int64(len(data)) {
+		newData := make([]byte, off+int64(len(data)))
+		copy(newData, fileContents)
+		fileContents = newData
+	}
+	copy(fileContents[off:], data)
+	fmt.Println("data: " + string(fileContents))
+	err = n.Filesystem.SDK.Write(n.CloudItem.Path, fileContents)
+	if err != nil {
+		panic(err)
+	}
+	return uint32(len(data)), 0
+}
+
 // func (n *FileNode) Write(
 // 	ctx context.Context,
 // 	f fs.FileHandle,
@@ -57,7 +80,7 @@ func (n *FileNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrO
 
 	// TODO: load from configuration
 	// out.Mode = 0644
-	out.Mode = 0444
+	out.Mode = 0644
 
 	// TODO: load from configuration
 	out.Uid = 1000
