@@ -1,7 +1,12 @@
 package puterfs
 
 import (
+	"context"
+	"fmt"
+	"syscall"
+
 	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 type FileNode struct {
@@ -10,4 +15,53 @@ type FileNode struct {
 }
 
 func (n *FileNode) Init() {
+}
+
+func (n *FileNode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uint32, syscall.Errno) {
+	fh := &FileHandler{
+		Node: n,
+	}
+	return fh, 0, 0
+}
+
+func (n *FileNode) Read(
+	ctx context.Context,
+	f fs.FileHandle,
+	dest []byte, off int64,
+) (fuse.ReadResult, syscall.Errno) {
+	data, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
+	if err != nil {
+		return nil, syscall.EIO
+	}
+
+	fmt.Printf("this should be > 0 ??  [%d]\n", len(dest))
+	fmt.Printf("size from the cloud :) [%d]\n", len(data))
+
+	copy(dest, data[off:])
+
+	return fuse.ReadResultData(dest), 0
+}
+
+// func (n *FileNode) Write(
+// 	ctx context.Context,
+// 	f fs.FileHandle,
+
+// )
+
+func (n *FileNode) Fsync(ctx context.Context, f fs.FileHandle, flags uint32) syscall.Errno {
+	return 0
+}
+
+func (n *FileNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+	out.Size = n.CloudItem.Size
+
+	// TODO: load from configuration
+	// out.Mode = 0644
+	out.Mode = 0444
+
+	// TODO: load from configuration
+	out.Uid = 1000
+	out.Gid = 1000
+
+	return 0
 }
