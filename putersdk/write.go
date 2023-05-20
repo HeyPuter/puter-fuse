@@ -42,7 +42,7 @@ func (sdk *PuterSDK) Write(path string, data []byte) (*CloudItem, error) {
 	req.Header.Set("Authorization", "Bearer "+sdk.PuterAuthToken)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	fmt.Println("Content-Type: %s\n", writer.FormDataContentType())
+	fmt.Printf("Content-Type: %s\n", writer.FormDataContentType())
 
 	resp, err := sdk.Client.Do(req)
 	if err != nil {

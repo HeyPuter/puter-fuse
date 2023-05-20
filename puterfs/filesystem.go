@@ -1,6 +1,8 @@
 package puterfs
 
 import (
+	"sync"
+
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/hanwen/go-fuse/v2/fs"
 )
@@ -13,6 +15,9 @@ type Filesystem struct {
 	Nodes map[uint64]fs.InodeEmbedder
 
 	SDK *putersdk.PuterSDK
+
+	NodesMutex     sync.RWMutex
+	UidInoMapMutex sync.RWMutex
 }
 
 func (pfs *Filesystem) Init() {
@@ -22,21 +27,37 @@ func (pfs *Filesystem) Init() {
 
 func (fs *Filesystem) GetNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.InodeEmbedder {
 	ino := fs.GetInoFromUID(cloudItem.Uid)
+	fs.NodesMutex.RLock()
 	node, exists := fs.Nodes[ino]
+	fs.NodesMutex.RUnlock()
 	if !exists {
-		node = fs.CreateNodeFromCloudItem(cloudItem)
+		fs.NodesMutex.Lock()
+		// check again in case another thread just did this
+		node, exists = fs.Nodes[ino]
+		if !exists {
+			node = fs.CreateNodeFromCloudItem(cloudItem)
+		}
+		fs.NodesMutex.Unlock()
 	}
 	fs.Nodes[ino] = node
 	return node
 }
 
 func (fs *Filesystem) GetInoFromUID(uid string) uint64 {
+	fs.UidInoMapMutex.RLock()
 	ino, exists := fs.UidInoMap[uid]
+	fs.UidInoMapMutex.RUnlock()
 	if !exists {
-		fs.InoCounter++
-		ino = fs.InoCounter
+		fs.UidInoMapMutex.Lock()
+		// check again in case another thread just did this
+		ino, exists = fs.UidInoMap[uid]
+		if !exists {
+			fs.InoCounter++
+			ino = fs.InoCounter
+			fs.UidInoMap[uid] = ino
+		}
+		fs.UidInoMapMutex.Unlock()
 	}
-	fs.UidInoMap[uid] = ino
 	return ino
 }
 

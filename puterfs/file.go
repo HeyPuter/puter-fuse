@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"syscall"
+	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -36,8 +37,11 @@ func (n *FileNode) Read(
 
 	fmt.Printf("this should be > 0 ??  [%d]\n", len(dest))
 	fmt.Printf("size from the cloud :) [%d]\n", len(data))
+	fmt.Printf("off [%d] data [%s]\n", off, data[off:])
 
 	copy(dest, data[off:])
+
+	fmt.Printf("amount [%d] data [%s]\n", len(dest), string(dest))
 
 	return fuse.ReadResultData(dest), 0
 }
@@ -62,6 +66,7 @@ func (n *FileNode) Write(
 	if err != nil {
 		panic(err)
 	}
+	n.CloudItem.Modified = float64(time.Now().Unix())
 	return uint32(len(data)), 0
 }
 
@@ -85,6 +90,10 @@ func (n *FileNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrO
 	// TODO: load from configuration
 	out.Uid = 1000
 	out.Gid = 1000
+
+	out.Mtime = uint64(n.CloudItem.Modified)
+	out.Atime = uint64(n.CloudItem.Accessed)
+	out.Ctime = uint64(n.CloudItem.Created)
 
 	return 0
 }
