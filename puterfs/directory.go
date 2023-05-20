@@ -114,6 +114,8 @@ func (n *DirectoryNode) Create(ctx context.Context, name string, flags uint32, m
 		return nil, nil, 0, syscall.EIO
 	}
 
+	n.Items = append(n.Items, *cloudItem)
+
 	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(*cloudItem)
 
 	iface := cloudItemNode.(HasPuterNodeCapabilities)
@@ -126,4 +128,27 @@ func (n *DirectoryNode) Create(ctx context.Context, name string, flags uint32, m
 			Ino:  iface.GetIno(),
 		},
 	), &FileHandler{Node: cloudItemNode.(*FileNode)}, 0, 0
+}
+
+func (n *DirectoryNode) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
+	dirPath := filepath.Join(n.CloudItem.Path, name)
+	cloudItem, err := n.Filesystem.SDK.Mkdir(dirPath)
+	if err != nil {
+		return nil, syscall.EIO
+	}
+
+	n.Items = append(n.Items, cloudItem)
+
+	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(cloudItem)
+
+	iface := cloudItemNode.(HasPuterNodeCapabilities)
+
+	return n.NewInode(
+		ctx,
+		cloudItemNode,
+		fs.StableAttr{
+			Mode: iface.GetStableAttrMode(),
+			Ino:  iface.GetIno(),
+		},
+	), 0
 }
