@@ -2,6 +2,7 @@ package putersdk
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -10,7 +11,7 @@ import (
 	"strings"
 )
 
-func (sdk *PuterSDK) Write(path string, data []byte) error {
+func (sdk *PuterSDK) Write(path string, data []byte) (*CloudItem, error) {
 	fmt.Printf("write(%s)\n", path)
 	filename := filepath.Base(path)
 	path = filepath.Dir(path)
@@ -36,7 +37,7 @@ func (sdk *PuterSDK) Write(path string, data []byte) error {
 
 	req, err := http.NewRequest("POST", u.String(), body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+sdk.PuterAuthToken)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -45,7 +46,7 @@ func (sdk *PuterSDK) Write(path string, data []byte) error {
 
 	resp, err := sdk.Client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -57,17 +58,25 @@ func (sdk *PuterSDK) Write(path string, data []byte) error {
 			resp.StatusCode,
 			string(respBytes),
 		)
-		return err
+		return nil, err
 	}
 
 	bgetbody := new(strings.Builder)
 	rgetbody, _ := req.GetBody()
 	io.Copy(bgetbody, rgetbody)
 
+	respBytes, _ := io.ReadAll(resp.Body)
+
+	cloudItem := &CloudItem{}
+	err = json.Unmarshal(respBytes, cloudItem)
+	if err != nil {
+		return nil, err
+	}
+
 	fmt.Printf("status? [%d] when sending [%s]\n",
 		resp.StatusCode,
 		bgetbody.String(),
 	)
 
-	return nil
+	return cloudItem, nil
 }

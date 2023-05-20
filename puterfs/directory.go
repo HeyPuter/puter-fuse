@@ -3,6 +3,7 @@ package puterfs
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -104,4 +105,25 @@ func (n *DirectoryNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.
 	out.Gid = 1000
 
 	return 0
+}
+
+func (n *DirectoryNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (node *fs.Inode, fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	newFilePath := filepath.Join(n.CloudItem.Path, name)
+	cloudItem, err := n.Filesystem.SDK.Write(newFilePath, []byte{})
+	if err != nil {
+		return nil, nil, 0, syscall.EIO
+	}
+
+	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(*cloudItem)
+
+	iface := cloudItemNode.(HasPuterNodeCapabilities)
+
+	return n.NewInode(
+		ctx,
+		cloudItemNode,
+		fs.StableAttr{
+			Mode: iface.GetStableAttrMode(),
+			Ino:  iface.GetIno(),
+		},
+	), &FileHandler{Node: cloudItemNode.(*FileNode)}, 0, 0
 }

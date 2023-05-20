@@ -56,9 +56,9 @@ type CloudItem struct {
 	IsShortcut PuterIntBool `json:"is_shortcut"`
 	Immutable  PuterIntBool
 	IsDir      PuterIntBool `json:"is_dir"`
-	Modified   uint64
-	Created    uint64
-	Accessed   uint64
+	Modified   float64
+	Created    float64
+	Accessed   float64
 	Size       uint64
 	Type       string
 }

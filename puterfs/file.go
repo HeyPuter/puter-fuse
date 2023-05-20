@@ -58,7 +58,7 @@ func (n *FileNode) Write(
 	}
 	copy(fileContents[off:], data)
 	fmt.Println("data: " + string(fileContents))
-	err = n.Filesystem.SDK.Write(n.CloudItem.Path, fileContents)
+	_, err = n.Filesystem.SDK.Write(n.CloudItem.Path, fileContents)
 	if err != nil {
 		panic(err)
 	}
@@ -86,5 +86,11 @@ func (n *FileNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrO
 	out.Uid = 1000
 	out.Gid = 1000
 
+	return 0
+}
+
+func (n *FileNode) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+	// TODO: modify attributes
+	// this NO-OP is here so commands like `touch` exit without error
 	return 0
 }
