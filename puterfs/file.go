@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"syscall"
-	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -61,12 +60,11 @@ func (n *FileNode) Write(
 		fileContents = newData
 	}
 	copy(fileContents[off:], data)
-	fmt.Println("data: " + string(fileContents))
-	_, err = n.Filesystem.SDK.Write(n.CloudItem.Path, fileContents)
+	cloudItem, err := n.Filesystem.SDK.Write(n.CloudItem.Path, fileContents)
 	if err != nil {
 		panic(err)
 	}
-	n.CloudItem.Modified = float64(time.Now().Unix())
+	n.CloudItem = *cloudItem
 	return uint32(len(data)), 0
 }
 
@@ -99,7 +97,19 @@ func (n *FileNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrO
 }
 
 func (n *FileNode) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+
 	// TODO: modify attributes
 	// this NO-OP is here so commands like `touch` exit without error
+	if in.Valid&fuse.FATTR_SIZE != 0 && in.Size != n.CloudItem.Size {
+		fileContents, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
+		if err != nil {
+			return syscall.EIO
+		}
+		cloudItem, err := n.Filesystem.SDK.Write(n.CloudItem.Path, fileContents[:in.Size])
+		if err != nil {
+			panic(err)
+		}
+		n.CloudItem = *cloudItem
+	}
 	return 0
 }
