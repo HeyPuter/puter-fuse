@@ -12,6 +12,14 @@ import (
 )
 
 func (sdk *PuterSDK) Write(path string, data []byte) (*CloudItem, error) {
+	return sdk.write(path, data, "")
+}
+
+func (sdk *PuterSDK) Symlink(path, target string) (*CloudItem, error) {
+	return sdk.write(path, []byte(target), target)
+}
+
+func (sdk *PuterSDK) write(path string, data []byte, target string) (*CloudItem, error) {
 	fmt.Printf("write(%s)\n", path)
 	filename := filepath.Base(path)
 	path = filepath.Dir(path)
@@ -28,6 +36,10 @@ func (sdk *PuterSDK) Write(path string, data []byte) (*CloudItem, error) {
 	{
 		fw, _ := writer.CreateFormField("overwrite")
 		io.Copy(fw, strings.NewReader("true"))
+	}
+	if target != "" {
+		fw, _ := writer.CreateFormField("shortcut_to_path")
+		io.Copy(fw, strings.NewReader(target))
 	}
 	writer.Close()
 

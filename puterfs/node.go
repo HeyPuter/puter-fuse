@@ -21,6 +21,10 @@ func (n *CloudItemNode) GetStableAttrMode() uint32 {
 		return syscall.S_IFDIR
 	}
 
+	if n.CloudItem.IsShortcut {
+		return syscall.S_IFLNK
+	}
+
 	return syscall.S_IFREG
 }
 

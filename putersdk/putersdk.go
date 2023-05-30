@@ -48,19 +48,21 @@ func (b *PuterIntBool) UnmarshalJSON(data []byte) error {
 }
 
 type CloudItem struct {
-	Path       string
-	Name       string
-	Metadata   interface{}
-	Id         string
-	Uid        string
-	IsShortcut PuterIntBool `json:"is_shortcut"`
-	Immutable  PuterIntBool
-	IsDir      PuterIntBool `json:"is_dir"`
-	Modified   float64
-	Created    float64
-	Accessed   float64
-	Size       uint64
-	Type       string
+	Path           string
+	Name           string
+	Metadata       interface{}
+	Id             string
+	Uid            string
+	IsShortcut     PuterIntBool `json:"is_shortcut"`
+	Immutable      PuterIntBool
+	IsDir          PuterIntBool `json:"is_dir"`
+	ShortcutTo     string       `json:"shortcut_to"`
+	ShortcutToPath string       `json:"shortcut_to_path"`
+	Modified       float64
+	Created        float64
+	Accessed       float64
+	Size           uint64
+	Type           string
 }
 
 type PuterSDKReaddirRequestPayload struct {

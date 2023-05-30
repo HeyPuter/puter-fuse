@@ -76,6 +76,40 @@ func (n *DirectoryNode) Lookup(
 	), 0
 }
 
+func (n *DirectoryNode) Symlink(
+	ctx context.Context,
+	target string,
+	name string,
+	out *fuse.EntryOut,
+) (*fs.Inode, syscall.Errno) {
+	fmt.Printf("dir::symlink(%s)\n", name)
+	n.syncItems()
+
+	newFilePath := filepath.Join(n.CloudItem.Path, name)
+	cloudItem, err := n.Filesystem.SDK.Symlink(newFilePath, target)
+	if err != nil {
+		fmt.Println("THIS IS WHERE THE ERROR IS")
+		fmt.Println(err.Error())
+		fmt.Println("AND THIS IS AFTER THAT")
+		return nil, syscall.EIO
+	}
+
+	n.Items = append(n.Items, *cloudItem)
+
+	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(*cloudItem)
+
+	iface := cloudItemNode.(HasPuterNodeCapabilities)
+
+	return n.NewInode(
+		ctx,
+		cloudItemNode,
+		fs.StableAttr{
+			Mode: iface.GetStableAttrMode(),
+			Ino:  iface.GetIno(),
+		},
+	), 0
+}
+
 func (n *DirectoryNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	n.syncItems()
 
@@ -99,6 +133,7 @@ func (n *DirectoryNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.
 	// TODO: load from configuration
 	// out.Mode = 0644
 	out.Mode = 0755
+	out.Mode = out.Mode | 040000
 
 	// TODO: load from configuration
 	out.Uid = 1000
@@ -161,5 +196,21 @@ func (n *DirectoryNode) Unlink(ctx context.Context, name string) syscall.Errno {
 	}
 	// TODO: remove node properly
 	n.LastPoll = time.Now().Add(-2 * n.PollDuration)
+	return 0
+}
+
+func (n *DirectoryNode) Rename(
+	ctx context.Context,
+	name string,
+	newParent fs.InodeEmbedder,
+	newName string,
+	flags uint32,
+) syscall.Errno {
+	sourcePath := filepath.Join(n.CloudItem.Path, name)
+	parentNode := newParent.(*DirectoryNode)
+	_, err := n.SDK.Move(sourcePath, parentNode.CloudItem.Path, newName)
+	if err != nil {
+		return syscall.EIO
+	}
 	return 0
 }

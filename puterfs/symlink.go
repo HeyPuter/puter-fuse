@@ -9,27 +9,42 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
-type FileNode struct {
+type SymlinkNode struct {
 	fs.Inode
 	CloudItemNode
 }
 
-func (n *FileNode) Init() {
+func (n *SymlinkNode) Init() {
 }
 
-func (n *FileNode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uint32, syscall.Errno) {
+func (n *SymlinkNode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uint32, syscall.Errno) {
+	fmt.Printf("symlink::open()\n")
+	target, err := n.SDK.Stat(n.CloudItem.ShortcutToPath)
+	if err != nil {
+		return nil, 0, syscall.EIO
+	}
+
+	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(target)
+
+	fileNode, ok := cloudItemNode.(*FileNode)
+	if !ok {
+		return nil, 0, syscall.EINVAL
+	}
+
 	fh := &FileHandler{
-		Node: n,
+		Node: fileNode,
 	}
 	return fh, 0, 0
 }
 
-func (n *FileNode) Read(
+// DRY: also in FileNode
+func (n *SymlinkNode) Read(
 	ctx context.Context,
 	f fs.FileHandle,
 	dest []byte, off int64,
 ) (fuse.ReadResult, syscall.Errno) {
-	data, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
+	fmt.Printf("symlink::read()\n")
+	data, err := n.Filesystem.SDK.Read(n.CloudItem.ShortcutToPath)
 	if err != nil {
 		return nil, syscall.EIO
 	}
@@ -45,12 +60,14 @@ func (n *FileNode) Read(
 	return fuse.ReadResultData(dest), 0
 }
 
-func (n *FileNode) Write(
+// DRY: also in FileNode
+func (n *SymlinkNode) Write(
 	ctx context.Context,
 	f fs.FileHandle,
 	data []byte, off int64,
 ) (uint32, syscall.Errno) {
-	fileContents, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
+	fmt.Printf("symlink::write()\n")
+	fileContents, err := n.Filesystem.SDK.Read(n.CloudItem.ShortcutToPath)
 	if err != nil {
 		return 0, syscall.EIO
 	}
@@ -60,7 +77,7 @@ func (n *FileNode) Write(
 		fileContents = newData
 	}
 	copy(fileContents[off:], data)
-	cloudItem, err := n.Filesystem.SDK.Write(n.CloudItem.Path, fileContents)
+	cloudItem, err := n.Filesystem.SDK.Write(n.CloudItem.ShortcutToPath, fileContents)
 	if err != nil {
 		panic(err)
 	}
@@ -68,28 +85,21 @@ func (n *FileNode) Write(
 	return uint32(len(data)), 0
 }
 
-// func (n *FileNode) Write(
+// func (n *SymlinkNode) Write(
 // 	ctx context.Context,
 // 	f fs.FileHandle,
 
 // )
 
-func (n *FileNode) Fsync(ctx context.Context, f fs.FileHandle, flags uint32) syscall.Errno {
+func (n *SymlinkNode) Fsync(ctx context.Context, f fs.FileHandle, flags uint32) syscall.Errno {
 	return 0
 }
 
-func (n *FileNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (n *SymlinkNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Size = n.CloudItem.Size
 
 	// TODO: load from configuration
-	// out.Mode = 0644
-	out.Mode = 0644
-
-	if n.CloudItem.IsShortcut {
-		out.Mode = out.Mode | 0120000
-	} else {
-		out.Mode = out.Mode | 0100000
-	}
+	out.Mode = 0644 | 0120000
 
 	// TODO: load from configuration
 	out.Uid = 1000
@@ -102,7 +112,7 @@ func (n *FileNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrO
 	return 0
 }
 
-func (n *FileNode) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+func (n *SymlinkNode) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 
 	// TODO: modify attributes
 	// this NO-OP is here so commands like `touch` exit without error
@@ -120,15 +130,6 @@ func (n *FileNode) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAtt
 	return 0
 }
 
-func (n *FileNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
-	if !n.CloudItem.IsShortcut {
-		return nil, syscall.EINVAL
-	}
-
-	data, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
-	if err != nil {
-		return nil, syscall.EIO
-	}
-
-	return data, 0
+func (n *SymlinkNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
+	return []byte(n.CloudItem.ShortcutToPath), 0
 }

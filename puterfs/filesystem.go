@@ -66,10 +66,14 @@ func (fs *Filesystem) CreateNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.I
 		return fs.CreateDirNodeFromCloudItem(cloudItem)
 	}
 
+	if cloudItem.IsShortcut {
+		return fs.CreateSymlinkNodeFromCloudItem(cloudItem)
+	}
+
 	return fs.CreateFileNodeFromCloudItem(cloudItem)
 }
 
-// start :: redundant (file,file;dir;directory)
+// start :: redundant (file,file;dir;directory;symlink)
 
 func (pfs *Filesystem) CreateDirNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.InodeEmbedder {
 	dirNode := &DirectoryNode{}
@@ -83,6 +87,16 @@ func (pfs *Filesystem) CreateDirNodeFromCloudItem(cloudItem putersdk.CloudItem) 
 
 func (pfs *Filesystem) CreateFileNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.InodeEmbedder {
 	fileNode := &FileNode{}
+	fileNode.CloudItem = cloudItem
+	fileNode.Filesystem = pfs
+
+	fileNode.Init()
+
+	return fileNode
+}
+
+func (pfs *Filesystem) CreateSymlinkNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.InodeEmbedder {
+	fileNode := &SymlinkNode{}
 	fileNode.CloudItem = cloudItem
 	fileNode.Filesystem = pfs
 
