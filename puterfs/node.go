@@ -21,7 +21,7 @@ func (n *CloudItemNode) GetStableAttrMode() uint32 {
 		return syscall.S_IFDIR
 	}
 
-	if n.CloudItem.IsShortcut {
+	if n.CloudItem.IsSymlink {
 		return syscall.S_IFLNK
 	}
 

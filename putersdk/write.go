@@ -38,7 +38,7 @@ func (sdk *PuterSDK) write(path string, data []byte, target string) (*CloudItem,
 		io.Copy(fw, strings.NewReader("true"))
 	}
 	if target != "" {
-		fw, _ := writer.CreateFormField("shortcut_to_path")
+		fw, _ := writer.CreateFormField("symlink_path")
 		io.Copy(fw, strings.NewReader(target))
 	}
 	writer.Close()

@@ -85,7 +85,7 @@ func (n *FileNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrO
 	// out.Mode = 0644
 	out.Mode = 0644
 
-	if n.CloudItem.IsShortcut {
+	if n.CloudItem.IsSymlink {
 		out.Mode = out.Mode | 0120000
 	} else {
 		out.Mode = out.Mode | 0100000
@@ -121,14 +121,9 @@ func (n *FileNode) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAtt
 }
 
 func (n *FileNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
-	if !n.CloudItem.IsShortcut {
+	if !n.CloudItem.IsSymlink {
 		return nil, syscall.EINVAL
 	}
 
-	data, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
-	if err != nil {
-		return nil, syscall.EIO
-	}
-
-	return data, 0
+	return []byte(n.CloudItem.SymlinkPath), 0
 }
