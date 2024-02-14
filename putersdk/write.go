@@ -12,7 +12,11 @@ import (
 )
 
 func (sdk *PuterSDK) Write(path string, data []byte) (*CloudItem, error) {
-	return sdk.write(path, data, "")
+	cloudItem, err := sdk.write(path, data, "")
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+	return cloudItem, err
 }
 
 func (sdk *PuterSDK) Symlink(path, target string) (*CloudItem, error) {
@@ -26,10 +30,6 @@ func (sdk *PuterSDK) write(path string, data []byte, target string) (*CloudItem,
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	{
-		fw, _ := writer.CreateFormFile("file", filename)
-		fw.Write(data)
-	}
-	{
 		fw, _ := writer.CreateFormField("path")
 		io.Copy(fw, strings.NewReader(path))
 	}
@@ -37,9 +37,17 @@ func (sdk *PuterSDK) write(path string, data []byte, target string) (*CloudItem,
 		fw, _ := writer.CreateFormField("overwrite")
 		io.Copy(fw, strings.NewReader("true"))
 	}
+	{
+		fw, _ := writer.CreateFormField("size")
+		io.Copy(fw, strings.NewReader(fmt.Sprintf("%d", len(data))))
+	}
 	if target != "" {
 		fw, _ := writer.CreateFormField("symlink_path")
 		io.Copy(fw, strings.NewReader(target))
+	}
+	{
+		fw, _ := writer.CreateFormFile("file", filename)
+		fw.Write(data)
 	}
 	writer.Close()
 

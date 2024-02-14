@@ -65,6 +65,12 @@ func main() {
 	rootNode.Filesystem = puterFS
 	rootNode.Init()
 
+	// Ensure /tmp/mnt exists
+	err = os.MkdirAll("/tmp/mnt", 0755)
+	if err != nil {
+		panic(err)
+	}
+
 	server, err := fs.Mount("/tmp/mnt", rootNode, &fs.Options{})
 	if err != nil {
 		panic(err)
