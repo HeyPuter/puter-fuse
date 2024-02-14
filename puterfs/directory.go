@@ -189,6 +189,10 @@ func (n *DirectoryNode) Mkdir(ctx context.Context, name string, mode uint32, out
 }
 
 func (n *DirectoryNode) Unlink(ctx context.Context, name string) syscall.Errno {
+	return syscall.EISDIR
+}
+
+func (n *DirectoryNode) Rmdir(ctx context.Context, name string) syscall.Errno {
 	filePath := filepath.Join(n.CloudItem.Path, name)
 	err := n.Filesystem.SDK.Delete(filePath)
 	if err != nil {
