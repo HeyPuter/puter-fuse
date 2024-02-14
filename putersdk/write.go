@@ -20,7 +20,33 @@ func (sdk *PuterSDK) Write(path string, data []byte) (*CloudItem, error) {
 }
 
 func (sdk *PuterSDK) Symlink(path, target string) (*CloudItem, error) {
-	return sdk.write(path, []byte(target), target)
+	parent := filepath.Dir(path)
+	name := filepath.Base(path)
+	batchResponse, err := sdk.Batch([]Operation{
+		{
+			"op":     "symlink",
+			"path":   parent,
+			"name":   name,
+			"target": target,
+		},
+	}, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(batchResponse.Results) != 1 {
+		return nil, fmt.Errorf("unexpected batch response length: %d", len(batchResponse.Results))
+	}
+
+	// Get CloudItem from batch response at index 0
+	cloudItem := &CloudItem{}
+	err = unmarshalIntoStruct(batchResponse.Results[0], cloudItem)
+	if err != nil {
+		return nil, err
+	}
+
+	return cloudItem, nil
 }
 
 func (sdk *PuterSDK) write(path string, data []byte, target string) (*CloudItem, error) {

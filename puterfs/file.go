@@ -29,6 +29,7 @@ func (n *FileNode) Read(
 	f fs.FileHandle,
 	dest []byte, off int64,
 ) (fuse.ReadResult, syscall.Errno) {
+	fmt.Printf("file::read(%s)\n", n.CloudItem.Path)
 	data, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
 	if err != nil {
 		return nil, syscall.EIO

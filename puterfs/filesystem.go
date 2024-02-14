@@ -1,6 +1,8 @@
 package puterfs
 
 import (
+	"fmt"
+	"log"
 	"sync"
 
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
@@ -34,8 +36,10 @@ func (fs *Filesystem) GetNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.Inod
 		fs.NodesMutex.Lock()
 		// check again in case another thread just did this
 		node, exists = fs.Nodes[ino]
+		// util.Printvar(node, "before")
 		if !exists {
 			node = fs.CreateNodeFromCloudItem(cloudItem)
+			// util.Printvar(node, "after")
 		}
 		fs.Nodes[ino] = node
 		fs.NodesMutex.Unlock()
@@ -62,10 +66,15 @@ func (fs *Filesystem) GetInoFromUID(uid string) uint64 {
 }
 
 func (fs *Filesystem) CreateNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.InodeEmbedder {
+	// log info about clouditem
+	log.Printf("cloudItem: %+v\n", cloudItem)
+
 	if cloudItem.IsDir {
+		fmt.Println("creating dir node")
 		return fs.CreateDirNodeFromCloudItem(cloudItem)
 	}
 
+	fmt.Println("creating file node")
 	return fs.CreateFileNodeFromCloudItem(cloudItem)
 }
 

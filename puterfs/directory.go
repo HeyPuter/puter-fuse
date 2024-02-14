@@ -41,12 +41,9 @@ func (n *DirectoryNode) syncItems() error {
 	return nil
 }
 
-func (n *DirectoryNode) Lookup(
-	ctx context.Context, name string, out *fuse.EntryOut,
-) (*fs.Inode, syscall.Errno) {
-	fmt.Printf("dir::lookup(%s)\n", name)
-	n.syncItems()
-
+func (n *DirectoryNode) lookupCloudItem(
+	name string,
+) (putersdk.CloudItem, bool) {
 	var foundItem putersdk.CloudItem
 	var found bool
 
@@ -58,6 +55,17 @@ func (n *DirectoryNode) Lookup(
 		}
 	}
 
+	return foundItem, found
+}
+
+func (n *DirectoryNode) Lookup(
+	ctx context.Context, name string, out *fuse.EntryOut,
+) (*fs.Inode, syscall.Errno) {
+	fmt.Printf("dir::lookup(%s)\n", name)
+	n.syncItems()
+
+	foundItem, found := n.lookupCloudItem(name)
+
 	if !found {
 		// TODO: return an error code?
 		return nil, syscall.ENOENT
@@ -65,6 +73,8 @@ func (n *DirectoryNode) Lookup(
 	foundItemNode := n.Filesystem.GetNodeFromCloudItem(foundItem)
 
 	iface := foundItemNode.(HasPuterNodeCapabilities)
+
+	// util.Printvar(foundItemNode, "lookedup")
 
 	return n.NewInode(
 		ctx,
@@ -189,10 +199,37 @@ func (n *DirectoryNode) Mkdir(ctx context.Context, name string, mode uint32, out
 }
 
 func (n *DirectoryNode) Unlink(ctx context.Context, name string) syscall.Errno {
-	return syscall.EISDIR
+	{
+		cloudItem, found := n.lookupCloudItem(name)
+		if !found {
+			return syscall.ENOENT
+		}
+		if cloudItem.IsDir {
+			return syscall.EISDIR
+		}
+	}
+
+	filePath := filepath.Join(n.CloudItem.Path, name)
+	err := n.Filesystem.SDK.Delete(filePath)
+	if err != nil {
+		return syscall.EIO
+	}
+	// TODO: remove node properly
+	n.LastPoll = time.Now().Add(-2 * n.PollDuration)
+	return 0
 }
 
 func (n *DirectoryNode) Rmdir(ctx context.Context, name string) syscall.Errno {
+	{
+		cloudItem, found := n.lookupCloudItem(name)
+		if !found {
+			return syscall.ENOENT
+		}
+		if !cloudItem.IsDir {
+			return syscall.ENOTDIR
+		}
+	}
+
 	filePath := filepath.Join(n.CloudItem.Path, name)
 	err := n.Filesystem.SDK.Delete(filePath)
 	if err != nil {
