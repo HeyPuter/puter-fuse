@@ -37,9 +37,9 @@ func (fs *Filesystem) GetNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.Inod
 		if !exists {
 			node = fs.CreateNodeFromCloudItem(cloudItem)
 		}
+		fs.Nodes[ino] = node
 		fs.NodesMutex.Unlock()
 	}
-	fs.Nodes[ino] = node
 	return node
 }
 
