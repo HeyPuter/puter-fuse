@@ -1,7 +1,13 @@
-package engine
+package services
 
 type ServicesContainer struct {
 	Services map[string]IService
+}
+
+type IServiceContainer interface {
+	Set(name string, service IService)
+	Get(name string) IService
+	All() map[string]IService
 }
 
 func (svc *ServicesContainer) Init() {

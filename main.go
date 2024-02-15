@@ -5,9 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/HeyPuter/puter-fuse-go/engine"
 	"github.com/HeyPuter/puter-fuse-go/puterfs"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
+	"github.com/HeyPuter/puter-fuse-go/services"
 	"github.com/hanwen/go-fuse/v2/fs"
 )
 
@@ -57,22 +59,23 @@ func main() {
 	}
 	fmt.Println(string(jsonBytes))
 
-	services := &engine.ServicesContainer{}
-	services.Init()
+	svcc := &services.ServicesContainer{}
+	svcc.Init()
 
-	services.Set("operation", &engine.OperationService{
+	svcc.Set("operation", &engine.OperationService{
 		SDK: sdk,
 	})
+	svcc.Set("pending-node", &engine.PendingNodeService{})
+	svcc.Set("wfcache", &engine.WholeFileCacheService{})
+	svcc.Set("log", &debug.LogService{})
 
-	services.Set("wfcache", &engine.WholeFileCacheService{})
-
-	for _, svc := range services.All() {
-		svc.Init()
+	for _, svc := range svcc.All() {
+		svc.Init(svcc)
 	}
 
 	puterFS := &puterfs.Filesystem{
 		SDK:      sdk,
-		Services: services,
+		Services: svcc,
 	}
 	puterFS.Init()
 

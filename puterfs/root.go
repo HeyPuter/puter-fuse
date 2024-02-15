@@ -2,10 +2,10 @@ package puterfs
 
 import (
 	"context"
-	"fmt"
 	"syscall"
 	"time"
 
+	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -18,11 +18,14 @@ type RootNode struct {
 	Items        []putersdk.CloudItem
 	PollDuration time.Duration
 	LastPoll     time.Time
+	Logger       debug.ILogger
 }
 
 func (n *RootNode) Init() {
 	n.Items = []putersdk.CloudItem{}
 	n.PollDuration = 2 * time.Second
+	svc_log := n.Filesystem.Services.Get("log").(*debug.LogService)
+	n.Logger = svc_log.GetLogger("ROOT")
 }
 
 func (n *RootNode) syncItems() error {
@@ -32,7 +35,7 @@ func (n *RootNode) syncItems() error {
 	n.LastPoll = time.Now()
 
 	// TODO: Path -> UID
-	items, err := n.Filesystem.SDK.Readdir("/")
+	items, err := n.Filesystem.SDK.Readdir(n.Logger.S("SDK"), "/")
 	if err != nil {
 		return err
 	}
@@ -44,7 +47,7 @@ func (n *RootNode) syncItems() error {
 func (n *RootNode) Lookup(
 	ctx context.Context, name string, out *fuse.EntryOut,
 ) (*fs.Inode, syscall.Errno) {
-	fmt.Printf("root::lookup(%s)\n", name)
+	n.Logger.Log("lookup(%s)", name)
 	n.syncItems()
 
 	var foundItem putersdk.CloudItem

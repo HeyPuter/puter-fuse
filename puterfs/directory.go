@@ -7,6 +7,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/HeyPuter/puter-fuse-go/debug"
+	"github.com/HeyPuter/puter-fuse-go/engine"
+	"github.com/HeyPuter/puter-fuse-go/localutil"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -18,11 +21,16 @@ type DirectoryNode struct {
 	Items        []putersdk.CloudItem
 	PollDuration time.Duration
 	LastPoll     time.Time
+	Logger       debug.ILogger
 }
 
 func (n *DirectoryNode) Init() {
+	// call super init
+	n.CloudItemNode.Init()
 	n.Items = []putersdk.CloudItem{}
 	n.PollDuration = 2 * time.Second
+	svc_log := n.Filesystem.Services.Get("log").(*debug.LogService)
+	n.Logger = svc_log.GetLogger("Inode:D " + n.CloudItem.Path)
 }
 
 func (n *DirectoryNode) syncItems() error {
@@ -32,9 +40,36 @@ func (n *DirectoryNode) syncItems() error {
 	n.LastPoll = time.Now()
 
 	// TODO: Path -> UID
-	items, err := n.CloudItemNode.Filesystem.SDK.Readdir(n.CloudItem.Path)
-	if err != nil {
-		return err
+	var items []putersdk.CloudItem
+	var err error
+
+	if !n.IsPending {
+		items, err = n.CloudItemNode.Filesystem.SDK.Readdir(n.Logger.S("SDK"), n.CloudItem.Path)
+		if err != nil {
+			return err
+		}
+	} else {
+		items = []putersdk.CloudItem{}
+	}
+
+	svc_pendingNode := n.CloudItemNode.Filesystem.Services.Get("pending-node").(*engine.PendingNodeService)
+	pendingChildren := svc_pendingNode.GetChildren(n.CloudItem.Path)
+	for _, pendingChild := range pendingChildren {
+		var alreadyExists bool
+		for _, item := range items {
+			if item.Name == pendingChild.Name {
+				alreadyExists = true
+				break
+			}
+		}
+		if alreadyExists {
+			continue
+		}
+
+		// create artificial cloud item
+		cloudItem := engine.NodeInfoToArtificialCloudItem(pendingChild)
+
+		items = append(items, cloudItem)
 	}
 
 	n.Items = items
@@ -58,10 +93,23 @@ func (n *DirectoryNode) lookupCloudItem(
 	return foundItem, found
 }
 
+func (n *DirectoryNode) addOrReplaceCloudItem(
+	name string, item putersdk.CloudItem,
+) {
+	for i, existingItem := range n.Items {
+		if existingItem.Name == name {
+			n.Items[i] = item
+			return
+		}
+	}
+
+	n.Items = append(n.Items, item)
+}
+
 func (n *DirectoryNode) Lookup(
 	ctx context.Context, name string, out *fuse.EntryOut,
 ) (*fs.Inode, syscall.Errno) {
-	fmt.Printf("dir::lookup(%s)\n", name)
+	n.Logger.Log("lookup(%s)", name)
 	n.syncItems()
 
 	foundItem, found := n.lookupCloudItem(name)
@@ -73,8 +121,6 @@ func (n *DirectoryNode) Lookup(
 	foundItemNode := n.Filesystem.GetNodeFromCloudItem(foundItem)
 
 	iface := foundItemNode.(HasPuterNodeCapabilities)
-
-	// util.Printvar(foundItemNode, "lookedup")
 
 	return n.NewInode(
 		ctx,
@@ -153,16 +199,59 @@ func (n *DirectoryNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.
 }
 
 func (n *DirectoryNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (node *fs.Inode, fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
-	newFilePath := filepath.Join(n.CloudItem.Path, name)
-	cloudItem, err := n.Filesystem.SDK.Write(newFilePath, []byte{})
-	if err != nil {
-		return nil, nil, 0, syscall.EIO
+	n.Logger.Log("create(%s)", name)
+	// check if file already exists
+	{
+		_, found := n.lookupCloudItem(name)
+		if found {
+			n.Logger.Log("create(%s) -> EEXIST", name)
+			return nil, nil, 0, syscall.EEXIST
+		}
 	}
 
-	n.Items = append(n.Items, *cloudItem)
+	newFilePath := filepath.Join(n.CloudItem.Path, name)
+	svc_operation := n.Filesystem.Services.Get("operation").(*engine.OperationService)
+	svc_wfcache := n.Filesystem.Services.Get("wfcache").(*engine.WholeFileCacheService)
+	ver := svc_wfcache.SetFileData(newFilePath, []byte{})
 
-	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(*cloudItem)
+	svc_pendingNode := n.Filesystem.Services.Get("pending-node").(*engine.PendingNodeService)
+	nodeInfo := svc_pendingNode.Link(n.CloudItem.Path, name, engine.File)
 
+	pendingItem := engine.NodeInfoToArtificialCloudItem(nodeInfo)
+	n.addOrReplaceCloudItem(name, pendingItem)
+
+	go func() {
+		resp := <-svc_operation.EnqueueOperationRequest(
+			putersdk.Operation{
+				"op":        "write",
+				"path":      n.CloudItem.Path,
+				"name":      name,
+				"overwrite": false,
+			},
+			[]byte{},
+		).Await
+
+		cloudItem := &putersdk.CloudItem{}
+		err := localutil.ReJSON(resp.Data, cloudItem)
+		if err != nil {
+			panic(err)
+		}
+		svc_wfcache.DeleteFileData(newFilePath, ver)
+		n.addOrReplaceCloudItem(name, *cloudItem)
+	}()
+
+	// cloudItem, err := n.Filesystem.SDK.Write(newFilePath, []byte{})
+	// if err != nil {
+	// 	return nil, nil, 0, syscall.EIO
+	// }
+
+	// n.Items = append(n.Items, *cloudItem)
+
+	// cloudItemNode := n.Filesystem.GetNodeFromCloudItem(*cloudItem)
+
+	// iface := cloudItemNode.(HasPuterNodeCapabilities)
+
+	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(pendingItem)
 	iface := cloudItemNode.(HasPuterNodeCapabilities)
 
 	return n.NewInode(
@@ -176,16 +265,48 @@ func (n *DirectoryNode) Create(ctx context.Context, name string, flags uint32, m
 }
 
 func (n *DirectoryNode) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
-	dirPath := filepath.Join(n.CloudItem.Path, name)
-	cloudItem, err := n.Filesystem.SDK.Mkdir(dirPath)
-	if err != nil {
-		return nil, syscall.EIO
-	}
+	svc_pendingNode := n.Filesystem.Services.Get("pending-node").(*engine.PendingNodeService)
+	nodeInfo := svc_pendingNode.Link(n.CloudItem.Path, name, engine.Dir)
 
-	n.Items = append(n.Items, cloudItem)
+	pendingItem := engine.NodeInfoToArtificialCloudItem(nodeInfo)
+	n.addOrReplaceCloudItem(name, pendingItem)
 
-	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(cloudItem)
+	localutil.Printvar(nodeInfo, "nodeInfo")
+	localutil.Printvar(pendingItem, "pendingItem")
 
+	svc_operation := n.Filesystem.Services.Get("operation").(*engine.OperationService)
+
+	go func() {
+		resp := <-svc_operation.EnqueueOperationRequest(
+			putersdk.Operation{
+				"op":     "mkdir",
+				"parent": n.CloudItem.Path,
+				"path":   name,
+			},
+			nil,
+		).Await
+
+		cloudItem := &putersdk.CloudItem{}
+		err := localutil.ReJSON(resp.Data, cloudItem)
+		if err != nil {
+			panic(err)
+		}
+		n.addOrReplaceCloudItem(name, *cloudItem)
+	}()
+
+	// dirPath := filepath.Join(n.CloudItem.Path, name)
+	// cloudItem, err := n.Filesystem.SDK.Mkdir(dirPath)
+	// if err != nil {
+	// 	return nil, syscall.EIO
+	// }
+
+	// n.Items = append(n.Items, cloudItem)
+
+	// cloudItemNode := n.Filesystem.GetNodeFromCloudItem(cloudItem)
+
+	// iface := cloudItemNode.(HasPuterNodeCapabilities)
+
+	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(pendingItem)
 	iface := cloudItemNode.(HasPuterNodeCapabilities)
 
 	return n.NewInode(

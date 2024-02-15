@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
+	"github.com/HeyPuter/puter-fuse-go/services"
 )
 
 type OperationResponse struct {
@@ -25,6 +26,8 @@ type OperationService struct {
 	SDK                   *putersdk.PuterSDK
 	OperationRequestQueue chan *OperationRequest
 	QueueReadyQueue       chan struct{}
+
+	services services.IServiceContainer
 }
 
 func (svc_op *OperationService) EnqueueOperationRequest(
@@ -42,7 +45,9 @@ func (svc_op *OperationService) EnqueueOperationRequest(
 	}
 }
 
-func (svc_op *OperationService) Init() {
+func (svc_op *OperationService) Init(services services.IServiceContainer) {
+	svc_op.services = services
+
 	svc_op.OperationRequestQueue = make(chan *OperationRequest, 100)
 
 	batchQueue := make(chan *OperationRequest, 100)
@@ -63,12 +68,10 @@ func (svc_op *OperationService) Init() {
 
 	go func() {
 		for {
-			fmt.Println("[GO] <== Batch Queue -> SDK.Batch")
 			select {
 			case <-svc_op.QueueReadyQueue:
 			case <-time.After(800 * time.Millisecond):
 			}
-			fmt.Println("wut?")
 
 			if len(batchQueue) == 0 {
 				continue

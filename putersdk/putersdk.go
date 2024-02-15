@@ -16,7 +16,8 @@ type PuterSDK struct {
 func (sdk *PuterSDK) Init() {
 	sdk.Client = &http.Client{}
 	if sdk.Url == "" {
-		sdk.Url = "https://api.puter.com"
+		sdk.Url = "https://api.puter.local"
+		// sdk.Url = "https://api.puter.com"
 	}
 }
 
@@ -65,6 +66,7 @@ type CloudItem struct {
 	Accessed    float64
 	Size        uint64
 	Type        string
+	IsPending   bool
 }
 
 type PuterSDKReaddirRequestPayload struct {

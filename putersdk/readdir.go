@@ -6,10 +6,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/HeyPuter/puter-fuse-go/debug"
 )
 
-func (sdk *PuterSDK) Readdir(path string) (items []CloudItem, err error) {
-	fmt.Printf("readdir(%s)\n", path)
+func (sdk *PuterSDK) Readdir(logger debug.ILogger, path string) (
+	items []CloudItem, err error,
+) {
+	logger.Log("readdir(%s)", path)
 	payload := map[string]interface{}{}
 	payload["path"] = path
 
