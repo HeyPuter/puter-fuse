@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/HeyPuter/puter-fuse-go/engine"
 	"github.com/HeyPuter/puter-fuse-go/puterfs"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -56,8 +57,22 @@ func main() {
 	}
 	fmt.Println(string(jsonBytes))
 
-	puterFS := &puterfs.Filesystem{
+	services := &engine.ServicesContainer{}
+	services.Init()
+
+	services.Set("operation", &engine.OperationService{
 		SDK: sdk,
+	})
+
+	services.Set("wfcache", &engine.WholeFileCacheService{})
+
+	for _, svc := range services.All() {
+		svc.Init()
+	}
+
+	puterFS := &puterfs.Filesystem{
+		SDK:      sdk,
+		Services: services,
 	}
 	puterFS.Init()
 

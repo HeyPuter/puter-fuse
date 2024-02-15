@@ -20,6 +20,8 @@ func (sdk *PuterSDK) Batch(operations []Operation, blobs [][]byte) (*BatchResopo
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
+	fmt.Printf("batching %d operations with %d files\n", len(operations), len(blobs))
+
 	for _, op := range operations {
 		opJson, err := json.Marshal(op)
 		if err != nil {
@@ -31,6 +33,17 @@ func (sdk *PuterSDK) Batch(operations []Operation, blobs [][]byte) (*BatchResopo
 	}
 
 	if blobs != nil {
+		for _, blob := range blobs {
+			fileinfoJson, err := json.Marshal(map[string]interface{}{
+				"name": "untitled",
+				"size": len(blob),
+			})
+			if err != nil {
+				panic(err)
+			}
+			fw, _ := writer.CreateFormField("fileinfo")
+			fw.Write(fileinfoJson)
+		}
 		for _, blob := range blobs {
 			fw, _ := writer.CreateFormFile("file", "untitled")
 			fw.Write(blob)

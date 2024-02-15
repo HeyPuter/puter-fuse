@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/HeyPuter/puter-fuse-go/engine"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/hanwen/go-fuse/v2/fs"
 )
@@ -16,7 +17,8 @@ type Filesystem struct {
 
 	Nodes map[uint64]fs.InodeEmbedder
 
-	SDK *putersdk.PuterSDK
+	SDK      *putersdk.PuterSDK
+	Services *engine.ServicesContainer
 
 	NodesMutex     sync.RWMutex
 	UidInoMapMutex sync.RWMutex

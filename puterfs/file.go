@@ -3,8 +3,12 @@ package puterfs
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"syscall"
 
+	"github.com/HeyPuter/puter-fuse-go/engine"
+	"github.com/HeyPuter/puter-fuse-go/localutil"
+	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
@@ -30,6 +34,16 @@ func (n *FileNode) Read(
 	dest []byte, off int64,
 ) (fuse.ReadResult, syscall.Errno) {
 	fmt.Printf("file::read(%s)\n", n.CloudItem.Path)
+
+	// Try cache first
+	svc_wfcache := n.Filesystem.Services.Get("wfcache").(*engine.WholeFileCacheService)
+	data := svc_wfcache.GetFileData(n.CloudItem.Path)
+	if data != nil {
+		fmt.Printf("cache hit\n")
+		copy(dest, data[off:])
+		return fuse.ReadResultData(dest), 0
+	}
+
 	data, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
 	if err != nil {
 		return nil, syscall.EIO
@@ -51,7 +65,13 @@ func (n *FileNode) Write(
 	f fs.FileHandle,
 	data []byte, off int64,
 ) (uint32, syscall.Errno) {
-	fileContents, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
+	svc_wfcache := n.Filesystem.Services.Get("wfcache").(*engine.WholeFileCacheService)
+
+	fileContents := svc_wfcache.GetFileData(n.CloudItem.Path)
+	var err error
+	if fileContents == nil {
+		fileContents, err = n.Filesystem.SDK.Read(n.CloudItem.Path)
+	}
 	if err != nil {
 		return 0, syscall.EIO
 	}
@@ -61,11 +81,36 @@ func (n *FileNode) Write(
 		fileContents = newData
 	}
 	copy(fileContents[off:], data)
-	cloudItem, err := n.Filesystem.SDK.Write(n.CloudItem.Path, fileContents)
-	if err != nil {
-		panic(err)
+
+	svc_operation := n.Filesystem.Services.Get("operation").(*engine.OperationService)
+
+	dirname := filepath.Dir(n.CloudItem.Path)
+	name := filepath.Base(n.CloudItem.Path)
+
+	svc_wfcache.SetFileData(n.CloudItem.Path, fileContents)
+	n.CloudItem.Size = uint64(len(fileContents))
+
+	if false {
+		go func() {
+			resp := <-svc_operation.EnqueueOperationRequest(
+				putersdk.Operation{
+					"op":        "write",
+					"path":      dirname,
+					"name":      name,
+					"overwrite": true,
+				},
+				fileContents,
+			).Await
+
+			cloudItem := &putersdk.CloudItem{}
+			err = localutil.ReJSON(resp.Data, cloudItem)
+			if err != nil {
+				panic(err)
+			}
+			svc_wfcache.DeleteFileData(n.CloudItem.Path)
+			n.CloudItem = *cloudItem
+		}()
 	}
-	n.CloudItem = *cloudItem
 	return uint32(len(data)), 0
 }
 
