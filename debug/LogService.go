@@ -16,6 +16,12 @@ type Logger struct {
 	Crumbs []string
 }
 
+func NewLogger(format string, args ...interface{}) *Logger {
+	return &Logger{
+		Crumbs: []string{fmt.Sprintf(format, args...)},
+	}
+}
+
 func (l *Logger) Log(format string, args ...interface{}) {
 	str := ""
 	for _, crumb := range l.Crumbs {
