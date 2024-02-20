@@ -69,6 +69,7 @@ func main() {
 	svcc.Set("pending-node", &engine.PendingNodeService{})
 	svcc.Set("wfcache", &engine.WholeFileCacheService{})
 	svcc.Set("log", &debug.LogService{})
+	svcc.Set("association", engine.CreateAssociationService())
 
 	for _, svc := range svcc.All() {
 		svc.Init(svcc)

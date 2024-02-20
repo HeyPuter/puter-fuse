@@ -49,11 +49,12 @@ func (b *PuterIntBool) UnmarshalJSON(data []byte) error {
 }
 
 type CloudItem struct {
-	Path     string
-	Name     string
-	Metadata interface{}
-	Id       string
-	Uid      string
+	Path      string
+	Name      string
+	Metadata  interface{}
+	Id        string
+	LocalUID  string
+	RemoteUID string `json:"uid"`
 	// IsShortcut     PuterIntBool `json:"is_shortcut"`
 	IsSymlink PuterIntBool `json:"is_symlink"`
 	Immutable PuterIntBool

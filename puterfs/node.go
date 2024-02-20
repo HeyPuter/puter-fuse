@@ -29,5 +29,6 @@ func (n *CloudItemNode) GetStableAttrMode() uint32 {
 }
 
 func (n *CloudItemNode) GetIno() uint64 {
-	return n.Filesystem.GetInoFromUID(n.CloudItem.Uid)
+	// TODO: use LocalUID instead of RemoteUID
+	return n.Filesystem.GetInoFromUID(n.CloudItem.RemoteUID)
 }

@@ -123,7 +123,8 @@ func NodeInfoToArtificialCloudItem(nodeInfo *NodeInfo) putersdk.CloudItem {
 		Path:      nodeInfo.Path,
 		IsDir:     nodeInfo.Type == Dir,
 		Size:      nodeInfo.Size,
-		Uid:       "pending://" + nodeInfo.Path,
+		// TODO: both of these won't be used once Local UIDs are used
+		RemoteUID: "pending://" + nodeInfo.Path,
 		Id:        "pending://" + nodeInfo.Path,
 	}
 }

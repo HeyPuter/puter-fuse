@@ -32,7 +32,8 @@ func (pfs *Filesystem) Init() {
 }
 
 func (fs *Filesystem) GetNodeFromCloudItem(cloudItem fao.NodeInfo) fs.InodeEmbedder {
-	ino := fs.GetInoFromUID(cloudItem.Uid)
+	// TODO: use LocalUID instead of RemoteUID
+	ino := fs.GetInoFromUID(cloudItem.RemoteUID)
 	fs.NodesMutex.RLock()
 	node, exists := fs.Nodes[ino]
 	fs.NodesMutex.RUnlock()
