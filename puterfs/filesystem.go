@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/HeyPuter/puter-fuse-go/fao"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/HeyPuter/puter-fuse-go/services"
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -17,7 +18,8 @@ type Filesystem struct {
 
 	Nodes map[uint64]fs.InodeEmbedder
 
-	SDK      *putersdk.PuterSDK
+	SDK *putersdk.PuterSDK
+	fao.FAO
 	Services *services.ServicesContainer
 
 	NodesMutex     sync.RWMutex
@@ -29,7 +31,7 @@ func (pfs *Filesystem) Init() {
 	pfs.Nodes = map[uint64]fs.InodeEmbedder{}
 }
 
-func (fs *Filesystem) GetNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.InodeEmbedder {
+func (fs *Filesystem) GetNodeFromCloudItem(cloudItem fao.NodeInfo) fs.InodeEmbedder {
 	ino := fs.GetInoFromUID(cloudItem.Uid)
 	fs.NodesMutex.RLock()
 	node, exists := fs.Nodes[ino]
@@ -67,7 +69,7 @@ func (fs *Filesystem) GetInoFromUID(uid string) uint64 {
 	return ino
 }
 
-func (fs *Filesystem) CreateNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.InodeEmbedder {
+func (fs *Filesystem) CreateNodeFromCloudItem(cloudItem fao.NodeInfo) fs.InodeEmbedder {
 	// log info about clouditem
 	log.Printf("cloudItem: %+v\n", cloudItem)
 
@@ -82,7 +84,7 @@ func (fs *Filesystem) CreateNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.I
 
 // start :: redundant (file,file;dir,directory)
 
-func (pfs *Filesystem) CreateDirNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.InodeEmbedder {
+func (pfs *Filesystem) CreateDirNodeFromCloudItem(cloudItem fao.NodeInfo) fs.InodeEmbedder {
 	dirNode := &DirectoryNode{}
 	dirNode.CloudItem = cloudItem
 	dirNode.Filesystem = pfs
@@ -92,7 +94,7 @@ func (pfs *Filesystem) CreateDirNodeFromCloudItem(cloudItem putersdk.CloudItem) 
 	return dirNode
 }
 
-func (pfs *Filesystem) CreateFileNodeFromCloudItem(cloudItem putersdk.CloudItem) fs.InodeEmbedder {
+func (pfs *Filesystem) CreateFileNodeFromCloudItem(cloudItem fao.NodeInfo) fs.InodeEmbedder {
 	fileNode := &FileNode{}
 	fileNode.CloudItem = cloudItem
 	fileNode.Filesystem = pfs

@@ -41,3 +41,43 @@ FUSE driver I could find and compared them.
 
 The FUSE driver for Golang seems the most promising. It is actively
 maintained and is the most popular among the ones I've found.
+
+## 2024-02-16
+
+### Caching Cache
+
+#### Write Cache
+
+Implementing write caching in the FUSE driver will prevent error
+in programs which don't expect a network filesystem, and will allow
+batch operations on Puter's API without blocking users of the
+filesystem.
+
+```
+FUSE Write --> WriteCacheFAO --> PuterFAO
+```
+
+Terms:
+- **branch**: a structure including:
+  - SHA1 hash of the contents of the file at some point in time
+  - a chain of mutations performed on the file
+
+Details:
+- Every SHA1 hash that is referenced by a **branch** will have a
+  corresponding entry in a map of structs, with each struct
+  containing the contents of the file at the respective hash as
+  well as a count of how many branches are referencing the hash.
+
+WriteCacheFAO will implement:
+- `Write` will initialize a new branch if none exists,
+  add a `write` mutation to the branch,
+  start a goroutine that delegates,
+  then return to the caller.
+  Upon return of the delegate, the branch is rebased
+- `Truncate` will initialize a new branch if none exists,
+  add a `truncate` mutation to the branch,
+  and follow the same proceedure as with write
+- `Read` will check for a write cache entry before delegating
+- `Stat` will delegate, then check for a cached entry.
+  If a cached entry exists, the response from the delegate
+  will be mutated accordingly.

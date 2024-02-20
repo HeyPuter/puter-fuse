@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
-	"github.com/HeyPuter/puter-fuse-go/putersdk"
+	"github.com/HeyPuter/puter-fuse-go/fao"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
@@ -15,14 +15,14 @@ type RootNode struct {
 	fs.Inode
 	// TODO: Path -> UID
 	*Filesystem
-	Items        []putersdk.CloudItem
+	Items        []fao.NodeInfo
 	PollDuration time.Duration
 	LastPoll     time.Time
 	Logger       debug.ILogger
 }
 
 func (n *RootNode) Init() {
-	n.Items = []putersdk.CloudItem{}
+	n.Items = []fao.NodeInfo{}
 	n.PollDuration = 2 * time.Second
 	svc_log := n.Filesystem.Services.Get("log").(*debug.LogService)
 	n.Logger = svc_log.GetLogger("ROOT")
@@ -35,7 +35,7 @@ func (n *RootNode) syncItems() error {
 	n.LastPoll = time.Now()
 
 	// TODO: Path -> UID
-	items, err := n.Filesystem.SDK.Readdir(n.Logger.S("SDK"), "/")
+	items, err := n.FAO.ReadDir("/")
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (n *RootNode) Lookup(
 	n.Logger.Log("lookup(%s)", name)
 	n.syncItems()
 
-	var foundItem putersdk.CloudItem
+	var foundItem fao.NodeInfo
 	var found bool
 
 	for _, item := range n.Items {

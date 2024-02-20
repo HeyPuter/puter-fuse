@@ -14,7 +14,7 @@ func CreateProxyFAO(params P_CreateProxyFAO) *ProxyFAO {
 	return &ProxyFAO{params}
 }
 
-func (p *ProxyFAO) Stat(path string) (NodeInfo, error) {
+func (p *ProxyFAO) Stat(path string) (NodeInfo, bool, error) {
 	return p.Delegate.Stat(path)
 }
 func (p *ProxyFAO) ReadDir(path string) ([]NodeInfo, error) {
@@ -26,11 +26,23 @@ func (p *ProxyFAO) Read(path string, dest []byte, off int64) (int, error) {
 func (p *ProxyFAO) Write(path string, src []byte, off int64) (int, error) {
 	return p.Delegate.Write(path, src, off)
 }
-func (p *ProxyFAO) Truncate(path string, size int64) error {
+func (p *ProxyFAO) Create(path string, name string) (NodeInfo, error) {
+	return p.Delegate.Create(path, name)
+}
+func (p *ProxyFAO) Truncate(path string, size uint64) error {
 	return p.Delegate.Truncate(path, size)
 }
-func (p *ProxyFAO) Link(parent string, name string, target string) error {
-	return p.Delegate.Link(parent, name, target)
+func (p *ProxyFAO) MkDir(path string, name string) (NodeInfo, error) {
+	return p.Delegate.MkDir(path, name)
+}
+func (p *ProxyFAO) Symlink(parent string, name string, target string) (NodeInfo, error) {
+	return p.Delegate.Symlink(parent, name, target)
+}
+func (p *ProxyFAO) Unlink(path string) error {
+	return p.Delegate.Unlink(path)
+}
+func (p *ProxyFAO) Move(source string, parent string, name string) error {
+	return p.Delegate.Move(source, parent, name)
 }
 func (p *ProxyFAO) ReadAll(path string) ([]byte, error) {
 	return p.Delegate.ReadAll(path)

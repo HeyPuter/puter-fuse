@@ -7,6 +7,7 @@ import (
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/HeyPuter/puter-fuse-go/engine"
+	"github.com/HeyPuter/puter-fuse-go/fao"
 	"github.com/HeyPuter/puter-fuse-go/puterfs"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/HeyPuter/puter-fuse-go/services"
@@ -73,8 +74,20 @@ func main() {
 		svc.Init(svcc)
 	}
 
+	fao := fao.CreatePuterFAO(
+		fao.P_PuterFAO{
+			SDK: sdk,
+		},
+		fao.D_PuterFAO{
+			EnqueueOperationRequest: svcc.Get("operation").(*engine.OperationService).EnqueueOperationRequest,
+		},
+	)
+
+	fao.ReadFAO = fao
+
 	puterFS := &puterfs.Filesystem{
 		SDK:      sdk,
+		FAO:      fao,
 		Services: svcc,
 	}
 	puterFS.Init()

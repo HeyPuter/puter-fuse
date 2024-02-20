@@ -3,7 +3,7 @@ package puterfs
 import (
 	"syscall"
 
-	"github.com/HeyPuter/puter-fuse-go/putersdk"
+	"github.com/HeyPuter/puter-fuse-go/fao"
 )
 
 type HasPuterNodeCapabilities interface {
@@ -13,7 +13,7 @@ type HasPuterNodeCapabilities interface {
 
 type CloudItemNode struct {
 	*Filesystem
-	putersdk.CloudItem
+	CloudItem fao.NodeInfo
 }
 
 func (n *CloudItemNode) GetStableAttrMode() uint32 {

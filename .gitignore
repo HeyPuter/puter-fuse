@@ -3,3 +3,5 @@ puter-fuse-go
 
 # credentials
 token
+token_*
+__debug_*

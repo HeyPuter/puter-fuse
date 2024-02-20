@@ -2,14 +2,9 @@ package puterfs
 
 import (
 	"context"
-	"fmt"
-	"path/filepath"
 	"syscall"
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
-	"github.com/HeyPuter/puter-fuse-go/engine"
-	"github.com/HeyPuter/puter-fuse-go/localutil"
-	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
@@ -39,27 +34,10 @@ func (n *FileNode) Read(
 ) (fuse.ReadResult, syscall.Errno) {
 	n.Logger.Log("read(%s)", n.CloudItem.Path)
 
-	// Try cache first
-	svc_wfcache := n.Filesystem.Services.Get("wfcache").(*engine.WholeFileCacheService)
-	data := svc_wfcache.GetFileData(n.CloudItem.Path)
-	if data != nil {
-		fmt.Printf("cache hit\n")
-		copy(dest, data[off:])
-		return fuse.ReadResultData(dest), 0
-	}
-
-	data, err := n.Filesystem.SDK.Read(n.CloudItem.Path)
+	_, err := n.FAO.Read(n.CloudItem.Path, dest, off)
 	if err != nil {
 		return nil, syscall.EIO
 	}
-
-	fmt.Printf("this should be > 0 ??  [%d]\n", len(dest))
-	fmt.Printf("size from the cloud :) [%d]\n", len(data))
-	fmt.Printf("off [%d] data [%s]\n", off, data[off:])
-
-	copy(dest, data[off:])
-
-	fmt.Printf("amount [%d] data [%s]\n", len(dest), string(dest))
 
 	return fuse.ReadResultData(dest), 0
 }
@@ -69,58 +47,13 @@ func (n *FileNode) Write(
 	f fs.FileHandle,
 	data []byte, off int64,
 ) (uint32, syscall.Errno) {
-	n.Logger.Log("write(%s)", n.CloudItem.Path)
-	svc_wfcache := n.Filesystem.Services.Get("wfcache").(*engine.WholeFileCacheService)
+	amount, err := n.FAO.Write(n.CloudItem.Path, data, off)
 
-	fileContents := svc_wfcache.GetFileData(n.CloudItem.Path)
-	var err error
-	if fileContents == nil {
-		n.Logger.Log("write(%s) cache miss", n.CloudItem.Path)
-		fileContents, err = n.Filesystem.SDK.Read(n.CloudItem.Path)
-	}
 	if err != nil {
-		n.Logger.Log("write(%s) IO error", n.CloudItem.Path)
 		return 0, syscall.EIO
 	}
-	if int64(len(fileContents)) < off+int64(len(data)) {
-		newData := make([]byte, off+int64(len(data)))
-		copy(newData, fileContents)
-		fileContents = newData
-	}
-	copy(fileContents[off:], data)
 
-	svc_operation := n.Filesystem.Services.Get("operation").(*engine.OperationService)
-
-	dirname := filepath.Dir(n.CloudItem.Path)
-	name := filepath.Base(n.CloudItem.Path)
-
-	svc_pendingNode := n.Filesystem.Services.Get("pending-node").(*engine.PendingNodeService)
-	ver := svc_pendingNode.SetFileData(n.CloudItem.Path, fileContents)
-
-	n.CloudItem.Size = uint64(len(fileContents))
-
-	go func() {
-		resp := <-svc_operation.EnqueueOperationRequest(
-			putersdk.Operation{
-				"op":        "write",
-				"path":      dirname,
-				"name":      name,
-				"overwrite": true,
-			},
-			fileContents,
-		).Await
-
-		cloudItem := &putersdk.CloudItem{}
-		err = localutil.ReJSON(resp.Data, cloudItem)
-		if err != nil {
-			panic(err)
-		}
-		svc_wfcache.DeleteFileData(n.CloudItem.Path, ver)
-		n.CloudItem = *cloudItem
-	}()
-
-	n.Logger.Log("write(%s) done", n.CloudItem.Path)
-	return uint32(len(data)), 0
+	return uint32(amount), 0
 }
 
 // func (n *FileNode) Write(
@@ -162,36 +95,7 @@ func (n *FileNode) Setattr(ctx context.Context, f fs.FileHandle, in *fuse.SetAtt
 	// TODO: modify attributes
 	// this NO-OP is here so commands like `touch` exit without error
 	if in.Valid&fuse.FATTR_SIZE != 0 && in.Size != n.CloudItem.Size {
-
-		var fileContents []byte
-		var err error
-
-		svc_pendingNode := n.Filesystem.Services.Get("pending-node").(*engine.PendingNodeService)
-		svc_wfcache := n.Filesystem.Services.Get("wfcache").(*engine.WholeFileCacheService)
-		data := svc_pendingNode.GetNodeInfo(n.CloudItem.Path)
-		if data != nil {
-			fileContents = svc_wfcache.GetFileData(n.CloudItem.Path)
-		} else {
-			fileContents, err = n.Filesystem.SDK.Read(n.CloudItem.Path)
-			if err != nil {
-				return syscall.EIO
-			}
-		}
-
-		fileContents, err = n.Filesystem.SDK.Read(n.CloudItem.Path)
-		if err != nil {
-			return syscall.EIO
-		}
-
-		if data != nil {
-			svc_pendingNode.SetFileData(n.CloudItem.Path, fileContents)
-		} else {
-			cloudItem, err := n.Filesystem.SDK.Write(n.CloudItem.Path, fileContents[:in.Size])
-			if err != nil {
-				panic(err)
-			}
-			n.CloudItem = *cloudItem
-		}
+		n.FAO.Truncate(n.CloudItem.Path, in.Size)
 	}
 	return 0
 }

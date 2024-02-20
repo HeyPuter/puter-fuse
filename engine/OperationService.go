@@ -30,6 +30,13 @@ type OperationService struct {
 	services services.IServiceContainer
 }
 
+type I_Batcher_EnqueueOperationRequest interface {
+	EnqueueOperationRequest(
+		operation putersdk.Operation,
+		blob []byte,
+	) OperationRequestPromise
+}
+
 func (svc_op *OperationService) EnqueueOperationRequest(
 	operation putersdk.Operation,
 	blob []byte,

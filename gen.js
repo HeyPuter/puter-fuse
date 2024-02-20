@@ -61,12 +61,20 @@ for ( const model of models ) {
 
         s += outputters.model_to_interface(model);
 
-        fs.writeFileSync(filename, s, 'utf8');
+        lib.writefile(filename, s);
         console.log(`Wrote ${filename}`);
     }
     {
         const filename = `${model.package}/Base${model.name}.go`;
         let s = `package ${model.package}\n\n`
+
+        if (model?.imports?.base) {
+            s += `import (\n`
+            for (let imp of model.imports.base) {
+                s += `\t"${imp}"\n`
+            }
+            s += `)\n\n`
+        }
 
         s += `type Base${model.name} struct {\n\t${model.name}\n}\n\n`
 
