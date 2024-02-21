@@ -184,3 +184,37 @@ decorators.
 
 Note: after writing the above I decided to implement `IMap` using
 generics, which were introduced in Go 1.18.
+
+### Data Structures
+
+#### Directory Tree
+
+- map from Local UID to entries containing:
+  - pointer to list of child local UIDs
+  - lock for mutating the list of child local UIDs
+  - timestamp of last readdir
+
+#### File cache
+
+- map of SHA1 hashes to entries containing:
+  - pointer to cached data
+  - timestamp of read
+  - list of references (keeps data in cache)
+  - lock for mutating list of references
+  - priority queue for TTL of cached entries?
+    - for now the TTLCacheFAO will add a reference on
+      the entry and call `<-time.After` before removing it.
+
+#### Write back cache
+
+- map from Local UID to "branches"; a branch contains:
+  - SHA1 hash of a cache entry, or an empty string if the file
+    is new (doesn't exist on remote yet)
+  - a list of mutations to apply to that cache entry
+    - a mutation can be:
+      - write mutation (data []byte, offset int64)
+      - truncate mutation
+      - delete mutation
+
+When a delete mutation is applied, it would be acceptable to
+remove the cached data and other mutations in the write-back cache
