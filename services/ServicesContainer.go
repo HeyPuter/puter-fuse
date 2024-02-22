@@ -1,13 +1,18 @@
 package services
 
+import mint "github.com/btvoidx/mint/context"
+
 type ServicesContainer struct {
 	Services map[string]IService
+	Emitter  *mint.Emitter
 }
 
 type IServiceContainer interface {
 	Set(name string, service IService)
 	Get(name string) IService
 	All() map[string]IService
+
+	E() *mint.Emitter
 }
 
 func (svc *ServicesContainer) Init() {
@@ -24,4 +29,8 @@ func (svc *ServicesContainer) Get(name string) IService {
 
 func (svc *ServicesContainer) All() map[string]IService {
 	return svc.Services
+}
+
+func (svc *ServicesContainer) E() *mint.Emitter {
+	return svc.Emitter
 }

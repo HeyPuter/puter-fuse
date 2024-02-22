@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/HeyPuter/puter-fuse-go/engine"
@@ -12,6 +13,7 @@ import (
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/HeyPuter/puter-fuse-go/services"
 	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/spf13/viper"
 )
 
 type PuterFSFile struct {
@@ -42,8 +44,52 @@ func main() {
 
 	fmt.Printf("token: |%s|\n", string(token))
 
+	// If it doesn't exist, add .config/puterfuse
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		panic(fmt.Errorf(("error getting user config directory: %s"), err))
+	}
+
+	puterfuseConfigDir := filepath.Join(userConfigDir, "puterfuse")
+	err = os.MkdirAll(puterfuseConfigDir, 0755)
+	if err != nil {
+		panic(fmt.Errorf("error creating config directory: %s", err))
+	}
+
+	// If it doesn't exist, add config.yaml
+
+	// TODO: this should go in ConfigService
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME/.config/puterfuse")
+	err = viper.ReadInConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	if !viper.IsSet("cacheDir") {
+		var puterfuseCacheDir string
+		if viper.GetBool("useUserCacheDir") {
+			userCacheDir, err := os.UserCacheDir()
+			if err != nil {
+				panic(fmt.Errorf("error getting user cache directory: %s", err))
+			}
+			puterfuseCacheDir = filepath.Join(userCacheDir, "puterfuse")
+		} else {
+			puterfuseCacheDir = "/tmp/puterfuse"
+		}
+
+		err = os.MkdirAll(puterfuseCacheDir, 0755)
+		if err != nil {
+			panic(fmt.Errorf("error creating cache directory: %s", err))
+		}
+
+		viper.Set("cacheDir", puterfuseCacheDir)
+	}
+
 	sdk := &putersdk.PuterSDK{
-		PuterAuthToken: string(token),
+		Url:            viper.GetString("url"),
+		PuterAuthToken: viper.GetString("token"),
 	}
 	sdk.Init()
 
@@ -97,16 +143,28 @@ func main() {
 	rootNode.Filesystem = puterFS
 	rootNode.Init()
 
+	mountPoint := viper.GetString("mountPoint")
+	if mountPoint == "" {
+		mountPoint = "/tmp/mnt"
+	}
+
 	// Ensure /tmp/mnt exists
-	err = os.MkdirAll("/tmp/mnt", 0755)
+	err = os.MkdirAll(mountPoint, 0755)
 	if err != nil {
 		panic(err)
 	}
 
-	server, err := fs.Mount("/tmp/mnt", rootNode, &fs.Options{})
+	server, err := fs.Mount(mountPoint, rootNode, &fs.Options{})
 	if err != nil {
 		panic(err)
 	}
+
+	// Print debug info
+	fmt.Println("Server started")
+	fmt.Println("Configuration file:", viper.ConfigFileUsed())
+	fmt.Println("Mountpoint:", mountPoint)
+	fmt.Println("Cache directory:", viper.GetString("cacheDir"))
+
 	// start serving the file system
 	server.Wait()
 }
