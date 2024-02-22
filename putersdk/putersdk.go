@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 )
 
 type PuterSDK struct {
@@ -68,6 +69,7 @@ type CloudItem struct {
 	Size        uint64
 	Type        string
 	IsPending   bool
+	LastStat    time.Time
 }
 
 type PuterSDKReaddirRequestPayload struct {

@@ -1,17 +1,18 @@
-package fao
+package faoimpls
 
 import (
 	"path/filepath"
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/HeyPuter/puter-fuse-go/engine"
+	"github.com/HeyPuter/puter-fuse-go/fao"
 	"github.com/HeyPuter/puter-fuse-go/localutil"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 )
 
 type P_PuterFAO struct {
 	SDK     *putersdk.PuterSDK
-	ReadFAO FAO
+	ReadFAO fao.FAO
 }
 
 type IC_PuterFAO interface {
@@ -26,7 +27,7 @@ type D_PuterFAO struct {
 }
 
 type PuterFAO struct {
-	BaseFAO
+	fao.BaseFAO
 	P_PuterFAO
 	D_PuterFAO
 }
@@ -36,7 +37,7 @@ func CreatePuterFAO(
 	deps D_PuterFAO,
 ) *PuterFAO {
 	fao := &PuterFAO{
-		BaseFAO{},
+		fao.BaseFAO{},
 		params,
 		deps,
 	}
@@ -46,31 +47,31 @@ func CreatePuterFAO(
 	return fao
 }
 
-func (fao *PuterFAO) Stat(path string) (NodeInfo, bool, error) {
-	item, err := fao.SDK.Stat(path)
+func (f *PuterFAO) Stat(path string) (fao.NodeInfo, bool, error) {
+	item, err := f.SDK.Stat(path)
 	if err != nil {
-		return NodeInfo{}, false, nil
+		return fao.NodeInfo{}, false, nil
 	}
 
-	return NodeInfo{item}, true, nil
+	return fao.NodeInfo{CloudItem: item}, true, nil
 }
 
-func (fao *PuterFAO) ReadDir(path string) ([]NodeInfo, error) {
-	items, err := fao.SDK.Readdir(debug.NewLogger("PuterFAO"), path)
+func (f *PuterFAO) ReadDir(path string) ([]fao.NodeInfo, error) {
+	items, err := f.SDK.Readdir(debug.NewLogger("PuterFAO"), path)
 	if err != nil {
 		return nil, err
 	}
 
-	nodeInfos := make([]NodeInfo, len(items))
+	nodeInfos := make([]fao.NodeInfo, len(items))
 	for i, item := range items {
-		nodeInfos[i] = NodeInfo{item}
+		nodeInfos[i] = fao.NodeInfo{CloudItem: item}
 	}
 
 	return nodeInfos, nil
 }
 
-func (fao *PuterFAO) Read(path string, dest []byte, off int64) (int, error) {
-	data, err := fao.SDK.Read(path)
+func (f *PuterFAO) Read(path string, dest []byte, off int64) (int, error) {
+	data, err := f.SDK.Read(path)
 	if err != nil {
 		return 0, err
 	}
@@ -79,11 +80,11 @@ func (fao *PuterFAO) Read(path string, dest []byte, off int64) (int, error) {
 	return len(data) - int(off), nil
 }
 
-func (fao *PuterFAO) Write(path string, src []byte, off int64) (int, error) {
+func (f *PuterFAO) Write(path string, src []byte, off int64) (int, error) {
 	parent := filepath.Dir(path)
 	name := filepath.Base(path)
 
-	fileContents, err := fao.ReadFAO.ReadAll(path)
+	fileContents, err := f.ReadFAO.ReadAll(path)
 	if err != nil {
 		return 0, err
 	}
@@ -95,7 +96,7 @@ func (fao *PuterFAO) Write(path string, src []byte, off int64) (int, error) {
 	}
 	copy(fileContents[off:], src)
 
-	<-fao.EnqueueOperationRequest(
+	<-f.EnqueueOperationRequest(
 		putersdk.Operation{
 			"op":        "write",
 			"path":      parent,
@@ -108,9 +109,9 @@ func (fao *PuterFAO) Write(path string, src []byte, off int64) (int, error) {
 	return len(src), nil
 }
 
-func (fao *PuterFAO) Create(path string, name string) (NodeInfo, error) {
+func (f *PuterFAO) Create(path string, name string) (fao.NodeInfo, error) {
 	empty := make([]byte, 0)
-	resp := <-fao.EnqueueOperationRequest(
+	resp := <-f.EnqueueOperationRequest(
 		putersdk.Operation{
 			"op":        "write",
 			"path":      path,
@@ -123,16 +124,16 @@ func (fao *PuterFAO) Create(path string, name string) (NodeInfo, error) {
 	cloudItem := &putersdk.CloudItem{}
 	err := localutil.ReJSON(resp.Data, cloudItem)
 	if err != nil {
-		return NodeInfo{}, err
+		return fao.NodeInfo{}, err
 	}
 
-	node := NodeInfo{*cloudItem}
+	node := fao.NodeInfo{CloudItem: *cloudItem}
 
 	return node, nil
 }
 
-func (fao *PuterFAO) Truncate(path string, size uint64) error {
-	fileContents, err := fao.ReadFAO.ReadAll(path)
+func (f *PuterFAO) Truncate(path string, size uint64) error {
+	fileContents, err := f.ReadFAO.ReadAll(path)
 	if err != nil {
 		return err
 	}
@@ -147,7 +148,7 @@ func (fao *PuterFAO) Truncate(path string, size uint64) error {
 	parent := filepath.Dir(path)
 	name := filepath.Base(path)
 
-	<-fao.EnqueueOperationRequest(
+	<-f.EnqueueOperationRequest(
 		putersdk.Operation{
 			"op":        "write",
 			"path":      parent,
@@ -160,8 +161,8 @@ func (fao *PuterFAO) Truncate(path string, size uint64) error {
 	return nil
 }
 
-func (fao *PuterFAO) MkDir(path string, name string) (NodeInfo, error) {
-	resp := <-fao.EnqueueOperationRequest(
+func (f *PuterFAO) MkDir(path string, name string) (fao.NodeInfo, error) {
+	resp := <-f.EnqueueOperationRequest(
 		putersdk.Operation{
 			"op":   "mkdir",
 			"path": path,
@@ -173,27 +174,27 @@ func (fao *PuterFAO) MkDir(path string, name string) (NodeInfo, error) {
 	cloudItem := &putersdk.CloudItem{}
 	err := localutil.ReJSON(resp.Data, cloudItem)
 	if err != nil {
-		return NodeInfo{}, err
+		return fao.NodeInfo{}, err
 	}
 
-	return NodeInfo{*cloudItem}, nil
+	return fao.NodeInfo{CloudItem: *cloudItem}, nil
 }
 
-func (fao *PuterFAO) Symlink(parent string, name string, target string) (NodeInfo, error) {
-	cloudItem, err := fao.SDK.Symlink(filepath.Join(parent, name), target)
+func (f *PuterFAO) Symlink(parent string, name string, target string) (fao.NodeInfo, error) {
+	cloudItem, err := f.SDK.Symlink(filepath.Join(parent, name), target)
 	if err != nil {
-		return NodeInfo{}, err
+		return fao.NodeInfo{}, err
 	}
 
-	nodeInfo := NodeInfo{*cloudItem}
+	nodeInfo := fao.NodeInfo{CloudItem: *cloudItem}
 	return nodeInfo, nil
 }
 
-func (fao *PuterFAO) Unlink(path string) error {
-	return fao.SDK.Delete(path)
+func (f *PuterFAO) Unlink(path string) error {
+	return f.SDK.Delete(path)
 }
 
-func (fao *PuterFAO) Move(source string, parent string, name string) error {
-	_, err := fao.SDK.Move(source, parent, name)
+func (f *PuterFAO) Move(source string, parent string, name string) error {
+	_, err := f.SDK.Move(source, parent, name)
 	return err
 }

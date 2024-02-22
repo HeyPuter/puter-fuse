@@ -5,7 +5,10 @@ import "sync"
 type IMap[TKey any, TVal any] interface {
 	Get(key TKey) (val TVal, ok bool)
 	Set(key TKey, val TVal)
+	Has(key TKey) bool
 	Del(key TKey)
+	Keys() []TKey
+	Values() []TVal
 }
 
 type ProxyMap[TKey any, TVal any] struct {
@@ -26,8 +29,20 @@ func (m *ProxyMap[TKey, TVal]) Set(key TKey, val TVal) {
 	m.Delegate.Set(key, val)
 }
 
+func (m *ProxyMap[TKey, TVal]) Has(key TKey) bool {
+	return m.Delegate.Has(key)
+}
+
 func (m *ProxyMap[TKey, TVal]) Del(key TKey) {
 	m.Delegate.Del(key)
+}
+
+func (m *ProxyMap[TKey, TVal]) Keys() []TKey {
+	return m.Delegate.Keys()
+}
+
+func (m *ProxyMap[TKey, TVal]) Values() []TVal {
+	return m.Delegate.Values()
 }
 
 type Map[TKey comparable, TVal any] struct {
@@ -49,8 +64,29 @@ func (m *Map[TKey, TVal]) Set(key TKey, val TVal) {
 	m.Items[key] = val
 }
 
+func (m *Map[TKey, TVal]) Has(key TKey) bool {
+	_, ok := m.Items[key]
+	return ok
+}
+
 func (m *Map[TKey, TVal]) Del(key TKey) {
 	delete(m.Items, key)
+}
+
+func (m *Map[TKey, TVal]) Keys() []TKey {
+	keys := make([]TKey, 0, len(m.Items))
+	for k := range m.Items {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (m *Map[TKey, TVal]) Values() []TVal {
+	values := make([]TVal, 0, len(m.Items))
+	for _, v := range m.Items {
+		values = append(values, v)
+	}
+	return values
 }
 
 type SyncMap[TKey comparable, TVal any] struct {
@@ -72,8 +108,8 @@ func CreateSyncMap[TKey comparable, TVal any](delegate IMap[TKey, TVal]) *SyncMa
 
 func (m *SyncMap[TKey, TVal]) Get(key TKey) (TVal, bool) {
 	m.lock.RLock()
+	defer m.lock.RUnlock()
 	val, ok := m.Delegate.Get(key)
-	m.lock.RUnlock()
 	return val, ok
 }
 
@@ -83,8 +119,28 @@ func (m *SyncMap[TKey, TVal]) Set(key TKey, val TVal) {
 	m.lock.Unlock()
 }
 
+func (m *SyncMap[TKey, TVal]) Has(key TKey) bool {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	return m.Delegate.Has(key)
+}
+
 func (m *SyncMap[TKey, TVal]) Del(key TKey) {
 	m.lock.Lock()
+	defer m.lock.Unlock()
 	m.Delegate.Del(key)
-	m.lock.Unlock()
+}
+
+func (m *SyncMap[TKey, TVal]) Keys() []TKey {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	keys := m.Delegate.Keys()
+	return keys
+}
+
+func (m *SyncMap[TKey, TVal]) Values() []TVal {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	values := m.Delegate.Values()
+	return values
 }

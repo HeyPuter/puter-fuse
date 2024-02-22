@@ -8,11 +8,12 @@ import (
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/HeyPuter/puter-fuse-go/engine"
-	"github.com/HeyPuter/puter-fuse-go/fao"
+	"github.com/HeyPuter/puter-fuse-go/faoimpls"
 	"github.com/HeyPuter/puter-fuse-go/puterfs"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/HeyPuter/puter-fuse-go/services"
 	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )
 
@@ -116,17 +117,17 @@ func main() {
 	svcc.Set("wfcache", &engine.WholeFileCacheService{})
 	svcc.Set("log", &debug.LogService{})
 	svcc.Set("association", engine.CreateAssociationService())
-	svcc.Set("blob-cache", engine.CreateBLOBCacheService())
+	svcc.Set("blob-cache", engine.CreateBLOBCacheService(afero.NewOsFs()))
 
 	for _, svc := range svcc.All() {
 		svc.Init(svcc)
 	}
 
-	fao := fao.CreatePuterFAO(
-		fao.P_PuterFAO{
+	fao := faoimpls.CreatePuterFAO(
+		faoimpls.P_PuterFAO{
 			SDK: sdk,
 		},
-		fao.D_PuterFAO{
+		faoimpls.D_PuterFAO{
 			EnqueueOperationRequest: svcc.Get("operation").(*engine.OperationService).EnqueueOperationRequest,
 		},
 	)

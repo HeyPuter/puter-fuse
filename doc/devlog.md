@@ -218,3 +218,9 @@ generics, which were introduced in Go 1.18.
 
 When a delete mutation is applied, it would be acceptable to
 remove the cached data and other mutations in the write-back cache
+
+## 2024-02-22
+
+NEXT: Make sure Link in VirtualTreeService is actually thread safe for real
+
+- [might use this to cache some files in RAM](https://github.com/allegro/bigcache)
