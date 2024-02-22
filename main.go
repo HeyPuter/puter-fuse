@@ -116,6 +116,7 @@ func main() {
 	svcc.Set("wfcache", &engine.WholeFileCacheService{})
 	svcc.Set("log", &debug.LogService{})
 	svcc.Set("association", engine.CreateAssociationService())
+	svcc.Set("blob-cache", engine.CreateBLOBCacheService())
 
 	for _, svc := range svcc.All() {
 		svc.Init(svcc)

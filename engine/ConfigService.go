@@ -8,17 +8,17 @@ import (
 
 // using this interface allows for keeping track of which methods
 // of viper are being used, in case we ever swap it out.
-type IViper interface {
+type IConfig interface {
 	GetString(key string) string
 }
 
 type ConfigService struct {
-	IViper
+	IConfig
 }
 
 func (svc *ConfigService) Init(services services.IServiceContainer) {
 	// store viper here so we can use a de-coupled interface
-	svc.IViper = viper.GetViper()
+	svc.IConfig = viper.GetViper()
 
 	// TODO: config is loaded in main.go right now for simplicity,
 	// but it should be loaded here instead.
