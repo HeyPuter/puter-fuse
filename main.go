@@ -117,6 +117,7 @@ func main() {
 	svcc.Set("wfcache", &engine.WholeFileCacheService{})
 	svcc.Set("log", &debug.LogService{})
 	svcc.Set("association", engine.CreateAssociationService())
+	svcc.Set("config", engine.CreateConfigService())
 	svcc.Set("blob-cache", engine.CreateBLOBCacheService(afero.NewOsFs()))
 
 	for _, svc := range svcc.All() {
@@ -166,6 +167,10 @@ func main() {
 	fmt.Println("Configuration file:", viper.ConfigFileUsed())
 	fmt.Println("Mountpoint:", mountPoint)
 	fmt.Println("Cache directory:", viper.GetString("cacheDir"))
+
+	if viper.GetBool("panik") {
+		fmt.Printf("\n\x1B[31;1m=== Panik mode is enabled ===\x1B[0m\n\n")
+	}
 
 	// start serving the file system
 	server.Wait()

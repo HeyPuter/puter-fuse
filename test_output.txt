@@ -1,0 +1,13 @@
+[]
+token: |eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1dWlkIjoiYWRlZDgzZjAtMWE3OC00NDZmLWIyYzMtYjc0MGNhNjU5OWIyIiwiaWF0IjoxNzAyOTM4OTQyfQ.Ml9U67ZA9FUqWywPtFWpSZvMT_ZE_5W37cL6ybjN8Cc|
+{"message":"File or directory not found.","code":"subject_does_not_exist"}
+Server started
+[34;1m[ROOT] [0mlookup(.Trash)
+Configuration file: /home/edube/.config/puterfuse/config.yml
+Mountpoint: /tmp/mnt
+Cache directory: /tmp/puterfuse
+[34;1m[PuterFAO] [0mreaddir(/)
+
+[31;1m=== Panik mode is enabled ===[0m
+
+[34;1m[ROOT] [0mlookup(.Trash-1000)

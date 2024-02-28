@@ -25,3 +25,7 @@ func (svc *ConfigService) Init(services services.IServiceContainer) {
 
 	mint.Emit(services.E(), ConfigLoadedEvent{})
 }
+
+func CreateConfigService() *ConfigService {
+	return &ConfigService{}
+}

@@ -1,6 +1,8 @@
 package faoimpls
 
 import (
+	"encoding/json"
+	"fmt"
 	"path/filepath"
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
@@ -8,6 +10,7 @@ import (
 	"github.com/HeyPuter/puter-fuse-go/fao"
 	"github.com/HeyPuter/puter-fuse-go/localutil"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
+	"github.com/google/uuid"
 )
 
 type P_PuterFAO struct {
@@ -121,6 +124,14 @@ func (f *PuterFAO) Create(path string, name string) (fao.NodeInfo, error) {
 		empty,
 	).Await
 
+	// random trace uuid
+	uid := uuid.New().String()
+
+	{
+		jsonBytes, _ := json.Marshal(resp)
+		fmt.Println("resp is: ", uid, string(jsonBytes))
+	}
+
 	cloudItem := &putersdk.CloudItem{}
 	err := localutil.ReJSON(resp.Data, cloudItem)
 	if err != nil {
@@ -128,6 +139,21 @@ func (f *PuterFAO) Create(path string, name string) (fao.NodeInfo, error) {
 	}
 
 	node := fao.NodeInfo{CloudItem: *cloudItem}
+
+	// assert that node is not a directory
+	if node.IsDir {
+		fmt.Println("Path is: ", uid, path)
+		fmt.Println("Name is: ", uid, name)
+		fmt.Printf("Node is: %s %+v\n", uid, node)
+		panic("created node is a directory")
+	}
+
+	if node.Path == "" {
+		fmt.Println("Path is: ", uid, path)
+		fmt.Println("Name is: ", uid, name)
+		fmt.Printf("Node is: %s %+v\n", uid, node)
+		panic("created node is missing path")
+	}
 
 	return node, nil
 }
@@ -161,12 +187,12 @@ func (f *PuterFAO) Truncate(path string, size uint64) error {
 	return nil
 }
 
-func (f *PuterFAO) MkDir(path string, name string) (fao.NodeInfo, error) {
+func (f *PuterFAO) MkDir(parent string, path string) (fao.NodeInfo, error) {
 	resp := <-f.EnqueueOperationRequest(
 		putersdk.Operation{
-			"op":   "mkdir",
-			"path": path,
-			"name": name,
+			"op":     "mkdir",
+			"parent": parent,
+			"path":   path,
 		},
 		nil,
 	).Await
@@ -195,6 +221,7 @@ func (f *PuterFAO) Unlink(path string) error {
 }
 
 func (f *PuterFAO) Move(source string, parent string, name string) error {
+	fmt.Println("performing a move operation")
 	_, err := f.SDK.Move(source, parent, name)
 	return err
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
 	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/google/uuid"
 )
 
 type OperationResponse struct {
@@ -42,13 +43,34 @@ func (svc_op *OperationService) EnqueueOperationRequest(
 	blob []byte,
 ) OperationRequestPromise {
 	resolve := make(chan OperationResponse)
+	await := make(chan OperationResponse)
 	svc_op.OperationRequestQueue <- &OperationRequest{
 		Operation: operation,
 		blob:      blob,
 		Resolve:   resolve,
 	}
+	go func() {
+		// make a uuid for this timeout
+		uuid := uuid.New().String()
+		// log operation so the debugger can find it
+		fmt.Printf("Operation: %s %s\n", uuid, operation)
+		select {
+		case res := <-resolve:
+			fmt.Printf("RESOLVED uuid: %s\n", uuid)
+			await <- res
+		case <-time.After(20 * time.Second):
+			// Print the uuid
+			fmt.Printf("TIMEOUT uuid: %s\n", uuid)
+			panic("oof time")
+			await <- OperationResponse{
+				Data: map[string]interface{}{
+					"error": "internal timeout",
+				},
+			}
+		}
+	}()
 	return OperationRequestPromise{
-		Await: resolve,
+		Await: await,
 	}
 }
 
@@ -60,15 +82,11 @@ func (svc_op *OperationService) Init(services services.IServiceContainer) {
 	batchQueue := make(chan *OperationRequest, 100)
 
 	go func() {
-		for {
+		for val := range svc_op.OperationRequestQueue {
 			fmt.Println("[GO] <== OP Req Queue -> Batch Queue")
-			select {
-			case req := <-svc_op.OperationRequestQueue:
-				batchQueue <- req
-
-				if len(batchQueue) == 100 {
-					svc_op.QueueReadyQueue <- struct{}{}
-				}
+			batchQueue <- val
+			if len(batchQueue) == 100 {
+				svc_op.QueueReadyQueue <- struct{}{}
 			}
 		}
 	}()
@@ -77,12 +95,13 @@ func (svc_op *OperationService) Init(services services.IServiceContainer) {
 		for {
 			select {
 			case <-svc_op.QueueReadyQueue:
-			case <-time.After(800 * time.Millisecond):
+			case <-time.After(200 * time.Millisecond):
 			}
 
 			if len(batchQueue) == 0 {
 				continue
 			}
+
 			fmt.Printf("len(batchQueue): %d\n", len(batchQueue))
 
 			operations := []putersdk.Operation{}
@@ -92,13 +111,12 @@ func (svc_op *OperationService) Init(services services.IServiceContainer) {
 			fmt.Println("Umm")
 
 			MAX_BATCH := 100
-			for i := 0; i < MAX_BATCH; i++ {
+			amountToGet := min(MAX_BATCH, len(batchQueue))
+
+			for i := 0; i < amountToGet; i++ {
 				var req *OperationRequest
 
-				select {
-				case req = <-batchQueue:
-				default:
-				}
+				req = <-batchQueue
 
 				if req == nil {
 					break
@@ -112,8 +130,14 @@ func (svc_op *OperationService) Init(services services.IServiceContainer) {
 			}
 			fmt.Println("Why?")
 
-			// clear the batchQueue
-			batchQueue = make(chan *OperationRequest, 100)
+			// The commented-out line below was a mistake!
+			// This was force of habit from dealing with queues
+			// in javascript, but clearing the "queue" makes
+			// absolutely no sense when working with channels.
+			// I left it here as a warning; the debugger can't
+			// help in situations like this, and it cost hours.
+
+			// batchQueue = make(chan *OperationRequest, 100)
 
 			// send the batch to the server
 			fmt.Println("BATCH")
@@ -130,7 +154,7 @@ func (svc_op *OperationService) Init(services services.IServiceContainer) {
 
 			for i := 0; i < len(resolves); i++ {
 				if i >= len(batchResponse.Results) {
-					break
+					panic(fmt.Errorf("batch response length mismatch"))
 				}
 				result := batchResponse.Results[i]
 				resolves[i] <- OperationResponse{

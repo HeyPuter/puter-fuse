@@ -40,6 +40,12 @@ func (n *RootNode) syncItems() error {
 		return err
 	}
 
+	for _, item := range items {
+		if item.Path == "" {
+			panic("item is missing path")
+		}
+	}
+
 	n.Items = items
 	return nil
 }
@@ -83,6 +89,9 @@ func (n *RootNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 
 	entries := []fuse.DirEntry{}
 	for _, item := range n.Items {
+		if item.Path == "" {
+			panic("item is missing path")
+		}
 		node := n.Filesystem.GetNodeFromCloudItem(item)
 		iface := node.(HasPuterNodeCapabilities)
 		entry := fuse.DirEntry{

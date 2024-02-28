@@ -48,7 +48,7 @@ func (m *KVMap[TKey, TVal]) getCacheStampedeMutex(key TKey) *sync.Mutex {
 
 func (m *KVMap[TKey, TVal]) GetOrSet(key TKey, ttl time.Duration, factory func() (TVal, error)) (TVal, error) {
 	v, exists := m.items.Get(key)
-	if exists && v.Time.Add(v.TTL).After(time.Now()) {
+	if exists && (v.Time.Add(v.TTL).After(time.Now()) || v.TTL == 0) {
 		return v.Value, nil
 	}
 
@@ -59,7 +59,7 @@ func (m *KVMap[TKey, TVal]) GetOrSet(key TKey, ttl time.Duration, factory func()
 
 	// Check if the value was set while we were waiting
 	v, exists = m.items.Get(key)
-	if exists && v.Time.Add(v.TTL).After(time.Now()) {
+	if exists && (v.Time.Add(v.TTL).After(time.Now()) || v.TTL == 0) {
 		return v.Value, nil
 	}
 
@@ -85,7 +85,7 @@ func (m *KVMap[TKey, TVal]) SetAndLock(key TKey, value TVal, ttl time.Duration) 
 
 func (m *KVMap[TKey, TVal]) Get(key TKey) *TVal {
 	v, exists := m.items.Get(key)
-	if !exists || v.Time.Add(v.TTL).Before(time.Now()) {
+	if !exists || (v.TTL != 0 && v.Time.Add(v.TTL).Before(time.Now())) {
 		return nil
 	}
 	value := v.Value

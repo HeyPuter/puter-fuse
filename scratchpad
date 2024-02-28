@@ -1,0 +1,38 @@
+if exists {
+	// SIDE LOAD
+	nodeInfo := f.AssociationService.GetNodeInfo(localUID)
+
+	// COND (A->0)
+	if nodeInfo != nil && nodeInfo.LastStat.Add(f.TTL).After(time.Now()) {
+		return *nodeInfo, true, nil
+		// COND (A->1)
+	} else if nodeInfo != nil {
+		f.AssociationService.CacheStampedeMapLock.RLock()
+		mutex, exists := f.AssociationService.CacheStampedeMap[path]
+		f.AssociationService.CacheStampedeMapLock.RUnlock()
+		if !exists {
+			f.AssociationService.CacheStampedeMapLock.Lock()
+			mutex, exists = f.AssociationService.CacheStampedeMap[path]
+			if !exists {
+				mutex = &sync.Mutex{}
+				f.AssociationService.CacheStampedeMap[path] = mutex
+			}
+			f.AssociationService.CacheStampedeMapLock.Unlock()
+		}
+		mutex.Lock()
+
+		// SIDE LOAD
+		nodeInfo = f.AssociationService.GetNodeInfo(localUID)
+
+		// COND (A->0) ==> NOTE: THIS IMPLIES COND(A->1) CAN NO LONGER EXIST
+
+		// well... what if write locks build up?
+		if nodeInfo != nil && nodeInfo.LastStat.Add(f.TTL).After(time.Now()) {
+			mutex.Unlock()
+
+			// RESOLUTION
+			return *nodeInfo, true, nil
+		}
+		defer mutex.Unlock()
+	}
+} 

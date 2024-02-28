@@ -9,6 +9,7 @@ import (
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/HeyPuter/puter-fuse-go/fao"
+	"github.com/HeyPuter/puter-fuse-go/kvdotgo"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
@@ -18,8 +19,8 @@ type DirectoryNode struct {
 	CloudItemNode
 	Items        []fao.NodeInfo
 	PollDuration time.Duration
-	LastPoll     time.Time
 	Logger       debug.ILogger
+	PathLockMap  *kvdotgo.KVMap[string, struct{}]
 }
 
 func (n *DirectoryNode) Init() {
@@ -29,14 +30,10 @@ func (n *DirectoryNode) Init() {
 	n.PollDuration = 2 * time.Second
 	svc_log := n.Filesystem.Services.Get("log").(*debug.LogService)
 	n.Logger = svc_log.GetLogger("Inode:D " + n.CloudItem.Path)
+	n.PathLockMap = kvdotgo.CreateKVMap[string, struct{}]()
 }
 
 func (n *DirectoryNode) syncItems() error {
-	if time.Now().Compare(n.LastPoll.Add(n.PollDuration)) < 0 {
-		return nil
-	}
-	n.LastPoll = time.Now()
-
 	// TODO: Path -> UID
 	var items []fao.NodeInfo
 	var err error
@@ -44,6 +41,23 @@ func (n *DirectoryNode) syncItems() error {
 	items, err = n.FAO.ReadDir(n.CloudItem.Path)
 	if err != nil {
 		return err
+	}
+
+	// check for duplicate item names
+	seen := map[string]fao.NodeInfo{}
+	for _, item := range items {
+		if item.Path == "" {
+			panic("item is missing path")
+		}
+		if iseen, ok := seen[item.Name]; ok {
+			// return fmt.Errorf("duplicate item name: %s", item.Name)
+			fmt.Printf("item named %s has local uid %s\n", item.Name, item.LocalUID)
+			fmt.Printf("item named %s has real uid %s\n", item.Name, item.RemoteUID)
+			fmt.Printf("SEEN named %s has local uid %s\n", iseen.Name, iseen.LocalUID)
+			fmt.Printf("SEEN named %s has real uid %s\n", iseen.Name, iseen.RemoteUID)
+			panic(fmt.Errorf("duplicate item name: %s", item.Name))
+		}
+		seen[item.Name] = item
 	}
 
 	n.Items = items
@@ -167,11 +181,25 @@ func (n *DirectoryNode) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.
 
 func (n *DirectoryNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (node *fs.Inode, fh fs.FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	n.Logger.Log("create(%s)", name)
-
-	nodeInfo, err := n.FAO.Create(n.CloudItem.Path, name)
+	// check if directory already exists
+	_, exists, err := n.FAO.Stat(filepath.Join(n.CloudItem.Path, name))
 	if err != nil {
 		return nil, nil, 0, syscall.EIO
 	}
+	if exists {
+		return nil, nil, 0, syscall.EEXIST
+	}
+
+	nodeInfo, err := n.FAO.Create(n.CloudItem.Path, name)
+	if err != nil {
+		panic(err)
+		// return nil, nil, 0, syscall.EIO
+	}
+
+	// log the node info
+	n.Logger.Log("nodeInfo: %+v", nodeInfo)
+	// log "is dir"
+	n.Logger.Log("is dir: %v", nodeInfo.IsDir)
 
 	cloudItemNode := n.Filesystem.GetNodeFromCloudItem(nodeInfo)
 	iface := cloudItemNode.(HasPuterNodeCapabilities)
@@ -187,6 +215,18 @@ func (n *DirectoryNode) Create(ctx context.Context, name string, flags uint32, m
 }
 
 func (n *DirectoryNode) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
+	mutex := n.PathLockMap.SetAndLock(name, struct{}{}, 0)
+	defer mutex.Unlock()
+
+	// check if directory already exists
+	_, exists, err := n.FAO.Stat(filepath.Join(n.CloudItem.Path, name))
+	if err != nil {
+		return nil, syscall.EIO
+	}
+	if exists {
+		return nil, syscall.EEXIST
+	}
+
 	nodeInfo, err := n.FAO.MkDir(n.CloudItem.Path, name)
 	if err != nil {
 		return nil, syscall.EIO
@@ -258,6 +298,7 @@ func (n *DirectoryNode) Rename(
 	parentNode := newParent.(*DirectoryNode)
 	err := n.FAO.Move(sourcePath, parentNode.CloudItem.Path, newName)
 	if err != nil {
+		n.Logger.Log("rename error: %v", err)
 		return syscall.EIO
 	}
 	return 0

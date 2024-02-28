@@ -71,7 +71,7 @@ type BLOBCacheService struct {
 }
 
 func (svc *BLOBCacheService) Init(services services.IServiceContainer) {
-	svc.ConfigService = services.Get("ConfigService").(*ConfigService)
+	svc.ConfigService = services.Get("config").(*ConfigService)
 }
 
 func CreateBLOBCacheService(fs afero.Fs) *BLOBCacheService {

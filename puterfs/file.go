@@ -2,11 +2,13 @@ package puterfs
 
 import (
 	"context"
+	"fmt"
 	"syscall"
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/spf13/viper"
 )
 
 type FileNode struct {
@@ -50,6 +52,9 @@ func (n *FileNode) Write(
 	amount, err := n.FAO.Write(n.CloudItem.Path, data, off)
 
 	if err != nil {
+		if viper.GetBool("panik") {
+			panic(fmt.Errorf("error writing file %s: %s", n.CloudItem.Path, err))
+		}
 		return 0, syscall.EIO
 	}
 

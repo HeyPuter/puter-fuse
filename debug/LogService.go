@@ -22,18 +22,26 @@ func NewLogger(format string, args ...interface{}) *Logger {
 	}
 }
 
-func (l *Logger) Log(format string, args ...interface{}) {
+func (l *Logger) log(format, col string, args ...interface{}) {
 	str := ""
 	for _, crumb := range l.Crumbs {
 		str += fmt.Sprintf("[%s] ", crumb)
 	}
 
-	// Wrap in blue
-	str = fmt.Sprintf("\033[34;1m%s\033[0m", str)
+	// Wrap in colour <col>
+	str = fmt.Sprintf("\033[%sm%s\033[0m", col, str)
 
 	str += fmt.Sprintf(format, args...)
 
 	fmt.Println(str)
+}
+
+func (l *Logger) Log(format string, args ...interface{}) {
+	l.log(format, "34;1", args...)
+}
+
+func (l *Logger) Error(format string, args ...interface{}) {
+	l.log(format, "31;1", args...)
 }
 
 func (l *Logger) Sub(crumbs []string) *Logger {

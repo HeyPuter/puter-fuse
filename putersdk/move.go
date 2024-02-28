@@ -11,8 +11,8 @@ import (
 func (sdk *PuterSDK) Move(sourcePath, dstPath, newName string) (cloudItem CloudItem, err error) {
 	fmt.Printf("move(%s,%s,%s)\n", sourcePath, dstPath, newName)
 	payload := map[string]interface{}{}
-	payload["source_path"] = sourcePath
-	payload["dest_path"] = dstPath
+	payload["source"] = sourcePath
+	payload["destination"] = dstPath
 	payload["new_name"] = newName
 
 	u := sdk.GetEndpointURL("move")
