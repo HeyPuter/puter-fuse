@@ -11,16 +11,16 @@ func TestKVMap(t *testing.T) {
 	t.Run("GetOrSet", func(t *testing.T) {
 		m := CreateKVMap[string, string]()
 
-		v0, _ := m.GetOrSet("key", time.Second, func() (string, error) {
-			return "this-one", nil
+		v0, _, _ := m.GetOrSet("key", time.Second, func() (string, bool, error) {
+			return "this-one", true, nil
 		})
 
 		if v0 != "this-one" {
 			t.Errorf("expected 'this-one', got '%s'", v0)
 		}
 
-		v, _ := m.GetOrSet("key", time.Second, func() (string, error) {
-			return "not-this-one", nil
+		v, _, _ := m.GetOrSet("key", time.Second, func() (string, bool, error) {
+			return "not-this-one", true, nil
 		})
 
 		if v != "this-one" {
@@ -38,9 +38,9 @@ func TestKVMap(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				_, _ = m.GetOrSet("key", time.Second, func() (string, error) {
+				_, _, _ = m.GetOrSet("key", time.Second, func() (string, bool, error) {
 					calls.Add(1)
-					return "this-one", nil
+					return "this-one", true, nil
 				})
 			}()
 		}

@@ -5,9 +5,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/HeyPuter/puter-fuse-go/engine"
+	"github.com/HeyPuter/puter-fuse-go/fao"
 	"github.com/HeyPuter/puter-fuse-go/faoimpls"
 	"github.com/HeyPuter/puter-fuse-go/puterfs"
 	"github.com/HeyPuter/puter-fuse-go/putersdk"
@@ -68,6 +70,13 @@ func main() {
 		panic(err)
 	}
 
+	// viper defaults
+	viper.SetDefault("treeCacheTTL", "2s")
+
+	if viper.GetBool("testMode") {
+		viper.SetDefault("treeCacheTTL", "5s")
+	}
+
 	if !viper.IsSet("cacheDir") {
 		var puterfuseCacheDir string
 		if viper.GetBool("useUserCacheDir") {
@@ -117,6 +126,7 @@ func main() {
 	svcc.Set("wfcache", &engine.WholeFileCacheService{})
 	svcc.Set("log", &debug.LogService{})
 	svcc.Set("association", engine.CreateAssociationService())
+	svcc.Set("virtual-tree", engine.CreateVirtualTreeService())
 	svcc.Set("config", engine.CreateConfigService())
 	svcc.Set("blob-cache", engine.CreateBLOBCacheService(afero.NewOsFs()))
 
@@ -124,16 +134,67 @@ func main() {
 		svc.Init(svcc)
 	}
 
-	fao := faoimpls.CreatePuterFAO(
-		faoimpls.P_PuterFAO{
-			SDK: sdk,
+	var fao fao.FAO
+	if viper.GetBool("testMode") {
+		memFAO := faoimpls.CreateMemFAO()
+		fao = memFAO
+		// Populate with test data
+		{
+			fao.MkDir("/", "user")
+			fao.MkDir("/user", "one-file")
+			fao.Create("/user/one-file", "file")
+			fao.Write("/user/one-file/file", []byte("file"), 0)
+			fao.MkDir("/user", "three-files")
+			for i := 0; i < 3; i++ {
+				fao.Create("/user/three-files", fmt.Sprintf("file-%d", i))
+				fao.Write(fmt.Sprintf("/user/three-files/file-%d", i),
+					[]byte(fmt.Sprintf("file-%d", i)), 0)
+			}
+			fao.MkDir("/user", "fifty-files")
+			for i := 0; i < 50; i++ {
+				fao.Create("/user/fifty-files", fmt.Sprintf("file-%d", i))
+				fao.Write(fmt.Sprintf("/user/fifty-files/file-%d", i),
+					[]byte(fmt.Sprintf("file-%d", i)), 0)
+			}
+		}
+		fao = faoimpls.CreateSlowFAO(fao, 200*time.Millisecond)
+		fao = faoimpls.CreateLogFAO(
+			fao,
+			svcc.Get("log").(*debug.LogService).GetLogger("test-storage"),
+		)
+	} else {
+		fao = faoimpls.CreatePuterFAO(
+			faoimpls.P_PuterFAO{
+				SDK: sdk,
+			},
+			faoimpls.D_PuterFAO{
+				EnqueueOperationRequest: svcc.Get("operation").(*engine.OperationService).EnqueueOperationRequest,
+			},
+		)
+		fao.(*faoimpls.PuterFAO).ReadFAO = fao
+	}
+
+	fao = faoimpls.CreateRemoteToLocalUIDFAO(fao, svcc)
+
+	treeCacheFAOTTL, err := time.ParseDuration(viper.GetString("treeCacheTTL"))
+	if err != nil {
+		panic(err)
+	}
+	fao = faoimpls.CreateTreeCacheFAO(
+		fao,
+		faoimpls.P_TreeCacheFAO{
+			TTL: treeCacheFAOTTL,
 		},
-		faoimpls.D_PuterFAO{
-			EnqueueOperationRequest: svcc.Get("operation").(*engine.OperationService).EnqueueOperationRequest,
+		faoimpls.D_TreeCacheFAO{
+			VirtualTreeService: svcc.Get("virtual-tree").(*engine.VirtualTreeService),
+			AssociationService: svcc.Get("association").(*engine.AssociationService),
 		},
 	)
 
-	fao.ReadFAO = fao
+	fao = faoimpls.CreateLogFAO(
+		fao,
+		svcc.Get("log").(*debug.LogService).GetLogger("top"),
+	)
 
 	puterFS := &puterfs.Filesystem{
 		SDK:      sdk,

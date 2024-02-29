@@ -46,10 +46,10 @@ func (m *KVMap[TKey, TVal]) getCacheStampedeMutex(key TKey) *sync.Mutex {
 	return mutex
 }
 
-func (m *KVMap[TKey, TVal]) GetOrSet(key TKey, ttl time.Duration, factory func() (TVal, error)) (TVal, error) {
+func (m *KVMap[TKey, TVal]) GetOrSet(key TKey, ttl time.Duration, factory func() (TVal, bool, error)) (TVal, bool, error) {
 	v, exists := m.items.Get(key)
 	if exists && (v.Time.Add(v.TTL).After(time.Now()) || v.TTL == 0) {
-		return v.Value, nil
+		return v.Value, true, nil
 	}
 
 	// Lock the mutex for this key
@@ -60,13 +60,15 @@ func (m *KVMap[TKey, TVal]) GetOrSet(key TKey, ttl time.Duration, factory func()
 	// Check if the value was set while we were waiting
 	v, exists = m.items.Get(key)
 	if exists && (v.Time.Add(v.TTL).After(time.Now()) || v.TTL == 0) {
-		return v.Value, nil
+		return v.Value, true, nil
 	}
 
 	// Create the value and set it
-	value, err := factory()
-	m.items.Set(key, CacheEntry[TVal]{time.Now(), ttl, value})
-	return value, err
+	value, ok, err := factory()
+	if ok {
+		m.items.Set(key, CacheEntry[TVal]{time.Now(), ttl, value})
+	}
+	return value, ok, err
 }
 
 func (m *KVMap[TKey, TVal]) Set(key TKey, value TVal, ttl time.Duration) {
