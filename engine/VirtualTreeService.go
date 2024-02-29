@@ -13,9 +13,13 @@ const (
 	ROOT_UUID = "00000000-0000-0000-0000-000000000000"
 )
 
+type VirtualEntry struct {
+}
+
 type VirtualDirectoryEntry struct {
 	// Directories lang.IMap[string, string]
 	// Files       lang.IMap[string, string]
+	VirtualEntry
 	MemberUIDToName lang.IMap[string, string]
 	MemberNameToUID lang.IMap[string, string]
 	LastReaddir     time.Time
@@ -30,6 +34,15 @@ func CreateVirtualDirectoryEntry() *VirtualDirectoryEntry {
 	return ins
 }
 
+type VirtualFileEntry struct {
+	VirtualEntry
+}
+
+func CreateVirtualFileEntry() *VirtualFileEntry {
+	ins := &VirtualFileEntry{}
+	return ins
+}
+
 func (v *VirtualDirectoryEntry) GetUIDs() []string {
 	return v.MemberUIDToName.Keys()
 }
@@ -37,6 +50,7 @@ func (v *VirtualDirectoryEntry) GetUIDs() []string {
 type VirtualTreeService struct {
 	DirectoriesCacheLock *kvdotgo.CacheStampedeMap[string]
 	Directories          lang.IMap[string, *VirtualDirectoryEntry]
+	Files                lang.IMap[string, *VirtualFileEntry]
 }
 
 func (svc *VirtualTreeService) Init(services services.IServiceContainer) {
@@ -47,6 +61,7 @@ func CreateVirtualTreeService() *VirtualTreeService {
 	ins := &VirtualTreeService{}
 
 	ins.Directories = lang.CreateSyncMap[string, *VirtualDirectoryEntry](nil)
+	ins.Files = lang.CreateSyncMap[string, *VirtualFileEntry](nil)
 	ins.DirectoriesCacheLock = kvdotgo.CreateCacheStampedeMap[string]()
 
 	return ins
@@ -70,6 +85,11 @@ func (svc *VirtualTreeService) ResolvePath(parts []string) *VirtualDirectoryEntr
 
 func (svc *VirtualTreeService) RegisterDirectory(uid string) string {
 	svc.Directories.Set(uid, CreateVirtualDirectoryEntry())
+	return uid
+}
+
+func (svc *VirtualTreeService) RegisterFile(uid string) string {
+	svc.Files.Set(uid, CreateVirtualFileEntry())
 	return uid
 }
 

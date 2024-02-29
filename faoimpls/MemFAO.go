@@ -67,6 +67,7 @@ func (f *MemFAO) resolvePath(path string) (node, bool) {
 }
 
 func (f *MemFAO) Stat(path string) (fao.NodeInfo, bool, error) {
+	fmt.Printf("statting %s\n", path)
 	n, ok := f.resolvePath(path)
 	if !ok {
 		return fao.NodeInfo{}, false, nil
@@ -192,14 +193,16 @@ func (f *MemFAO) Symlink(parent, name, target string) (fao.NodeInfo, error) {
 
 func (f *MemFAO) Unlink(path string) error {
 	parent := filepath.Dir(path)
+	name := filepath.Base(path)
+
 	n, ok := f.resolvePath(parent)
 	if !ok {
 		return nil
 	}
-	name := filepath.Base(path)
 	if _, ok := n.Nodes[name]; !ok {
 		return nil
 	}
+	fmt.Printf("deleting %s from %s\n", name, parent)
 	delete(n.Nodes, name)
 	return nil
 }

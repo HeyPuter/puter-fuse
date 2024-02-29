@@ -224,3 +224,92 @@ func (f *TreeCacheFAO) MkDir(parent string, path string) (fao.NodeInfo, error) {
 
 	return nodeInfo, nil
 }
+
+// TODO: Create, Symlink, Unlink, Move
+
+func (f *TreeCacheFAO) Create(parent string, path string) (fao.NodeInfo, error) {
+	nodeInfo, err := f.Delegate.Create(parent, path)
+	if err != nil {
+		return fao.NodeInfo{}, err
+	}
+
+	// Cache stat
+	f.AssociationService.LocalUIDToNodeInfo.Set(nodeInfo.LocalUID, nodeInfo, f.TTL)
+	fullPath := filepath.Join(parent, path)
+	f.AssociationService.PathToLocalUID.Set(fullPath, nodeInfo.LocalUID)
+
+	// Update the tree
+	f.VirtualTreeService.RegisterFile(nodeInfo.LocalUID)
+	parentLocalUID, ok := f.AssociationService.PathToLocalUID.Get(parent)
+	if !ok {
+		panic("parentLocalUID not found")
+	}
+	f.VirtualTreeService.Link(parentLocalUID, nodeInfo.LocalUID, nodeInfo.Name)
+
+	return nodeInfo, nil
+}
+
+func (f *TreeCacheFAO) Symlink(parent, name, target string) (fao.NodeInfo, error) {
+	nodeInfo, err := f.Delegate.Symlink(parent, name, target)
+	if err != nil {
+		return fao.NodeInfo{}, err
+	}
+
+	// Cache stat
+	f.AssociationService.LocalUIDToNodeInfo.Set(nodeInfo.LocalUID, nodeInfo, f.TTL)
+	fullPath := filepath.Join(parent, name)
+	f.AssociationService.PathToLocalUID.Set(fullPath, nodeInfo.LocalUID)
+
+	// Update the tree
+	f.VirtualTreeService.RegisterFile(nodeInfo.LocalUID)
+	parentLocalUID, ok := f.AssociationService.PathToLocalUID.Get(parent)
+	if !ok {
+		panic("parentLocalUID not found")
+	}
+	f.VirtualTreeService.Link(parentLocalUID, nodeInfo.LocalUID, nodeInfo.Name)
+
+	return nodeInfo, nil
+}
+
+func (f *TreeCacheFAO) Unlink(path string) error {
+	parentPath := filepath.Dir(path)
+	parentLocalUID, ok := f.AssociationService.PathToLocalUID.Get(parentPath)
+	if !ok {
+		panic("parentLocalUID not found")
+	}
+	localUID, ok := f.AssociationService.PathToLocalUID.Get(path)
+	if !ok {
+		panic("localUID not found")
+	}
+	f.AssociationService.PathToLocalUID.Del(path)
+	f.VirtualTreeService.Unlink(parentLocalUID, localUID)
+
+	return f.Delegate.Unlink(path)
+}
+
+func (f *TreeCacheFAO) Move(oldPath, newParentPath, name string) error {
+	oldParentPath := filepath.Dir(oldPath)
+
+	oldParentLocalUID, ok := f.AssociationService.PathToLocalUID.Get(oldParentPath)
+	if !ok {
+		panic("oldParentLocalUID not found")
+	}
+	newParentLocalUID, ok := f.AssociationService.PathToLocalUID.Get(newParentPath)
+	if !ok {
+		panic("newParentLocalUID not found")
+	}
+
+	oldName := filepath.Base(oldPath)
+
+	directoryEntry, exists := f.Directories.Get(oldParentLocalUID)
+	if !exists {
+		return fmt.Errorf("directory not found: %s", oldParentLocalUID)
+	}
+	localUID, exists := directoryEntry.MemberNameToUID.Get(oldName)
+	if !exists {
+		return fmt.Errorf("member not found: %s", oldName)
+	}
+	f.VirtualTreeService.Unlink(oldParentLocalUID, localUID)
+	f.VirtualTreeService.Link(newParentLocalUID, localUID, name)
+	return nil
+}
