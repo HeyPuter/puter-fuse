@@ -2,6 +2,7 @@ package faoimpls
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/HeyPuter/puter-fuse-go/engine"
@@ -42,6 +43,8 @@ func CreateTreeCacheFAO(
 
 	return fao
 }
+
+// === READ CACHING BEHAVIOR ===
 
 func (f *TreeCacheFAO) ReadDir(path string) ([]fao.NodeInfo, error) {
 	parts := lang.PathSplit(path)
@@ -191,4 +194,33 @@ func (f *TreeCacheFAO) readDirAndUpdateCache(path string) ([]fao.NodeInfo, error
 	// fmt.Println("result", nodeInfos)
 
 	return nodeInfos, nil
+}
+
+// === WRITE-BACK CACHING BEHAVIOR ===
+
+func (f *TreeCacheFAO) MkDir(parent string, path string) (fao.NodeInfo, error) {
+	nodeInfo, err := f.Delegate.MkDir(parent, path)
+	if err != nil {
+		return fao.NodeInfo{}, err
+	}
+
+	// Cache stat
+	f.AssociationService.LocalUIDToNodeInfo.Set(nodeInfo.LocalUID, nodeInfo, f.TTL)
+	fullPath := filepath.Join(parent, path)
+	f.AssociationService.PathToLocalUID.Set(fullPath, nodeInfo.LocalUID)
+
+	// Update the tree
+	f.VirtualTreeService.RegisterDirectory(nodeInfo.LocalUID)
+	parentLocalUID, ok := f.AssociationService.PathToLocalUID.Get(parent)
+	if !ok {
+		// TODO: this could happen if mkdir is called under a directory
+		// that hasn't been cached yet. Once this is confirmed to be
+		// a problem, this can be solved by performing a stat operation
+		// on the parent directory (this needs to use a cache stampede
+		// mutex map with key being the parent directory path).
+		panic("parentLocalUID not found")
+	}
+	f.VirtualTreeService.Link(parentLocalUID, nodeInfo.LocalUID, nodeInfo.Name)
+
+	return nodeInfo, nil
 }
