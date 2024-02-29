@@ -32,3 +32,26 @@ func (sdk *PuterSDK) Read(path string) (data []byte, err error) {
 	data = body
 	return
 }
+
+func (sdk *PuterSDK) ReadStream(path string) (reader io.ReadCloser, err error) {
+	u := sdk.GetEndpointURL("read")
+
+	params := url.Values{}
+	params.Add("path", path)
+
+	u.RawQuery = params.Encode()
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+sdk.PuterAuthToken)
+
+	resp, err := sdk.Client.Do(req)
+	if err != nil {
+		return
+	}
+
+	reader = resp.Body
+	return
+}

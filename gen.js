@@ -59,6 +59,14 @@ for ( const model of models ) {
         const filename = `${model.package}/${model.name}.go`;
         let s = `package ${model.package}\n\n`
 
+        if (model?.imports?.interface) {
+            s += `import (\n`
+            for (let imp of model.imports.interface) {
+                s += `\t"${imp}"\n`
+            }
+            s += `)\n\n`
+        }
+
         s += outputters.model_to_interface(model);
 
         lib.writefile(filename, s);
@@ -98,6 +106,14 @@ for ( const model of models ) {
     {
         const filename = `${model.package}/Proxy${model.name}.go`;
         let s = `package ${model.package}\n\n`
+
+        if (model?.imports?.interface) {
+            s += `import (\n`
+            for (let imp of model.imports.interface) {
+                s += `\t"${imp}"\n`
+            }
+            s += `)\n\n`
+        }
 
         s += `type P_CreateProxy${model.name} struct {\n`
         s += `\tDelegate ${model.name}\n`

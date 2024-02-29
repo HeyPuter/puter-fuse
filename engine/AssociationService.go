@@ -21,6 +21,8 @@ type AssociationService struct {
 	// PathToLocalUID     *kvdotgo.KVMap[string, string]
 	PathToLocalUID lang.IMap[string, string]
 
+	LocalUIDToBaseHash lang.IMap[string, string]
+
 	CacheStampedeMapLock sync.RWMutex
 	CacheStampedeMap     map[string]*sync.Mutex
 }

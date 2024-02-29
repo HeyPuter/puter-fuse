@@ -3,6 +3,7 @@ package faoimpls
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"path/filepath"
 
 	"github.com/HeyPuter/puter-fuse-go/debug"
@@ -87,10 +88,13 @@ func (f *PuterFAO) Write(path string, src []byte, off int64) (int, error) {
 	parent := filepath.Dir(path)
 	name := filepath.Base(path)
 
-	fileContents, err := f.ReadFAO.ReadAll(path)
+	fileContentsReader, err := f.ReadFAO.ReadAll(path)
 	if err != nil {
 		return 0, err
 	}
+
+	fileContents, err := io.ReadAll(fileContentsReader)
+	fileContentsReader.Close()
 
 	if int64(len(fileContents)) < off+int64(len(src)) {
 		newData := make([]byte, off+int64(len(src)))
@@ -159,10 +163,14 @@ func (f *PuterFAO) Create(path string, name string) (fao.NodeInfo, error) {
 }
 
 func (f *PuterFAO) Truncate(path string, size uint64) error {
-	fileContents, err := f.ReadFAO.ReadAll(path)
+	fileContentsReader, err := f.ReadFAO.ReadAll(path)
 	if err != nil {
 		return err
 	}
+
+	fileContents, err := io.ReadAll(fileContentsReader)
+	fileContentsReader.Close()
+
 	if uint64(len(fileContents)) == size {
 		return nil
 	}
@@ -224,4 +232,8 @@ func (f *PuterFAO) Move(source string, parent string, name string) error {
 	fmt.Println("performing a move operation")
 	_, err := f.SDK.Move(source, parent, name)
 	return err
+}
+
+func (f *PuterFAO) ReadAll(path string) (io.ReadCloser, error) {
+	return f.SDK.ReadStream(path)
 }

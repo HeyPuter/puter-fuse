@@ -4,7 +4,8 @@
         package: 'fao',
 
         imports: {
-            base: ['fmt']
+            // base: ['fmt'],
+            interface: ['io'],
         },
 
         methods: {
@@ -54,22 +55,7 @@
             // ],
             ReadAll: [
                 [ ['path', 'string'] ],
-                ['[]byte', 'error'],
-                `
-                stat, exists, err := base.Stat(path)
-                if err != nil {
-                    return nil, err
-                }
-                if !exists {
-                    return nil, fmt.Errorf("file does not exist")
-                }
-                buf := make([]byte, stat.Size)
-                n, err := base.Read(path, buf, 0)
-                if err != nil {
-                    return nil, err
-                }
-                return buf[:n], nil
-                `
+                ['io.ReadCloser', 'error']
             ]
         }
     }

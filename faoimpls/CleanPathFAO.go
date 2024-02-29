@@ -1,6 +1,7 @@
 package faoimpls
 
 import (
+	"io"
 	"path/filepath"
 
 	"github.com/HeyPuter/puter-fuse-go/fao"
@@ -61,7 +62,7 @@ func (f *CleanPathFAO) Move(source string, parent string, name string) error {
 	return f.Delegate.Move(source, parent, name)
 }
 
-func (f *CleanPathFAO) ReadAll(path string) ([]byte, error) {
+func (f *CleanPathFAO) ReadAll(path string) (io.ReadCloser, error) {
 	path = filepath.Clean(path)
 	return f.Delegate.ReadAll(path)
 }

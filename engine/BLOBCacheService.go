@@ -137,23 +137,44 @@ func (svc *BLOBCacheService) Store(
 	return ref
 }
 
+func (svc *BLOBCacheService) GetBytes(
+	hash string, offset int64,
+	buffer []byte,
+) error {
+	reader := svc.Get(hash, offset, int64(len(buffer)))
+	if reader == nil {
+		return fmt.Errorf("blob not found")
+	}
+
+	_, err := reader.Read(buffer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (svc *BLOBCacheService) Get(
-	hash string,
+	hash string, offset, size int64,
 ) io.Reader {
 	maybeRef := svc.Hold(hash)
 	if maybeRef == nil {
 		return nil
 	}
 
-	delegateReader := svc.getFile(hash)
-	providedReader := lang.CreateSignalReader(delegateReader)
+	atReader := svc.getFile(hash)
+
+	var reader io.Reader
+	reader = io.NewSectionReader(atReader, offset, size)
+	reader = lang.CreateSignalReader(reader)
 
 	go func() {
-		<-providedReader.Done
+		<-reader.(*lang.SignalReader).Done
+		fmt.Println("DONE SIGNAL IS WORKING")
 		maybeRef.Release()
 	}()
 
-	return providedReader
+	return reader
 }
 
 func (svc *BLOBCacheService) Hold(
@@ -212,7 +233,7 @@ func (svc *BLOBCacheService) deleteFile(
 
 func (svc *BLOBCacheService) getFile(
 	hash string,
-) io.Reader {
+) io.ReaderAt {
 	path := filepath.Join(
 		svc.ConfigService.GetString("cacheDir"),
 		hash,

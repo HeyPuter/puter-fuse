@@ -1,6 +1,8 @@
 package faoimpls
 
 import (
+	"io"
+
 	"github.com/HeyPuter/puter-fuse-go/debug"
 	"github.com/HeyPuter/puter-fuse-go/fao"
 )
@@ -87,8 +89,7 @@ func (f *LogFAO) Move(source, parent, name string) error {
 }
 
 // Implementing the ReadAll method with logging.
-// This implementation assumes the delegate also has a ReadAll method.
-func (f *LogFAO) ReadAll(path string) ([]byte, error) {
+func (f *LogFAO) ReadAll(path string) (io.ReadCloser, error) {
 	f.Log.S("LogFAO").Log("ReadAll called with path: %s", path)
 	return f.Delegate.ReadAll(path)
 }

@@ -48,7 +48,7 @@ func TestBLOBCacheService(t *testing.T) {
 	})
 
 	t.Run("blob is retrievable", func(t *testing.T) {
-		reader := svc.Get(testFileHash)
+		reader := svc.Get(testFileHash, 0, int64(len(testFileData)))
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(reader)
 		if !bytes.Equal(buf.Bytes(), testFileData) {

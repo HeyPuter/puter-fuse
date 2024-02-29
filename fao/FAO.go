@@ -2,21 +2,9 @@
 
 package fao
 
-type ErrDoesNotExist struct {
-	Path string
-}
-
-func (e *ErrDoesNotExist) Error() string {
-	return "Does not exist: " + e.Path
-}
-
-type ErrNotDirectory struct {
-	Path string
-}
-
-func (e *ErrNotDirectory) Error() string {
-	return "Not a directory: " + e.Path
-}
+import (
+	"io"
+)
 
 type FAO interface {
 	Stat(path string) (NodeInfo, bool, error)
@@ -29,5 +17,5 @@ type FAO interface {
 	Symlink(parent string, name string, target string) (NodeInfo, error)
 	Unlink(path string) error
 	Move(source string, parent string, name string) error
-	ReadAll(path string) ([]byte, error)
+	ReadAll(path string) (io.ReadCloser, error)
 }

@@ -2,6 +2,10 @@
 
 package fao
 
+import (
+	"io"
+)
+
 type P_CreateProxyFAO struct {
 	Delegate FAO
 }
@@ -44,6 +48,6 @@ func (p *ProxyFAO) Unlink(path string) error {
 func (p *ProxyFAO) Move(source string, parent string, name string) error {
 	return p.Delegate.Move(source, parent, name)
 }
-func (p *ProxyFAO) ReadAll(path string) ([]byte, error) {
+func (p *ProxyFAO) ReadAll(path string) (io.ReadCloser, error) {
 	return p.Delegate.ReadAll(path)
 }
