@@ -89,7 +89,7 @@ func (f *TreeCacheFAO) ReadDir(path string) ([]fao.NodeInfo, error) {
 		l.Unlock()
 	}
 
-	// fmt.Println("readdir cache hit", path)
+	fmt.Println("readdir cache hit", path)
 	// fmt.Println("readdir cache hit", nodeInfos)
 
 	return nodeInfos, nil

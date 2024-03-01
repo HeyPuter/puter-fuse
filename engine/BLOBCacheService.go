@@ -140,18 +140,19 @@ func (svc *BLOBCacheService) Store(
 func (svc *BLOBCacheService) GetBytes(
 	hash string, offset int64,
 	buffer []byte,
-) error {
+) (int, bool, error) {
+	fmt.Printf("GETTING BYTES FOR %s; OFFSET %d; SIZE %d\n", hash, offset, len(buffer))
 	reader := svc.Get(hash, offset, int64(len(buffer)))
 	if reader == nil {
-		return fmt.Errorf("blob not found")
+		return 0, false, nil
 	}
 
-	_, err := reader.Read(buffer)
-	if err != nil {
-		return err
+	n, err := reader.Read(buffer)
+	if err != nil && err != io.EOF {
+		return 0, false, err
 	}
 
-	return nil
+	return n, true, nil
 }
 
 func (svc *BLOBCacheService) Get(

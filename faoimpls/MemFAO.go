@@ -2,7 +2,9 @@ package faoimpls
 
 import (
 	"fmt"
+	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/HeyPuter/puter-fuse-go/engine"
 	"github.com/HeyPuter/puter-fuse-go/fao"
@@ -225,4 +227,15 @@ func (f *MemFAO) Move(source, parent, name string) error {
 	}
 	newParentNode.Nodes[name] = sourceNode
 	return nil
+}
+
+func (f *MemFAO) ReadAll(path string) (io.ReadCloser, error) {
+	n, ok := f.resolvePath(path)
+	if !ok {
+		return nil, nil
+	}
+	if n.IsDir {
+		return nil, nil
+	}
+	return io.NopCloser(strings.NewReader(string(n.Data))), nil
 }

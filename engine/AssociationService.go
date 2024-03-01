@@ -22,6 +22,7 @@ type AssociationService struct {
 	PathToLocalUID lang.IMap[string, string]
 
 	LocalUIDToBaseHash lang.IMap[string, string]
+	PathToBaseHash     lang.IMap[string, string]
 
 	CacheStampedeMapLock sync.RWMutex
 	CacheStampedeMap     map[string]*sync.Mutex
@@ -40,6 +41,9 @@ func CreateAssociationService() *AssociationService {
 	// ins.LocalUIDToNodeInfo = lang.CreateSyncMap[string, *fao.NodeInfo](nil)
 	ins.LocalUIDToNodeInfo = kvdotgo.CreateKVMap[string, fao.NodeInfo]()
 	ins.PathToLocalUID = lang.CreateSyncMap[string, string](nil)
+
+	ins.LocalUIDToBaseHash = lang.CreateSyncMap[string, string](nil)
+	ins.PathToBaseHash = lang.CreateSyncMap[string, string](nil)
 
 	ins.CacheStampedeMap = map[string]*sync.Mutex{}
 

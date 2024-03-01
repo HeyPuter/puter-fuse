@@ -38,6 +38,7 @@ func (n *FileNode) Read(
 
 	_, err := n.FAO.Read(n.CloudItem.Path, dest, off)
 	if err != nil {
+		n.Logger.Log("error reading file %s: %s", n.CloudItem.Path, err)
 		return nil, syscall.EIO
 	}
 

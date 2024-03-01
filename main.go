@@ -71,7 +71,12 @@ func main() {
 	}
 
 	// viper defaults
-	viper.SetDefault("treeCacheTTL", "2s")
+	viper.SetDefault("treeCacheTTL", "2h")
+	// viper.SetDefault("treeCacheTTL", "2s")
+
+	// TODO: change this default before release
+	fmt.Printf("\x1B[33;1mWARNING: fileReadCacheTTL DEFAULTS TO 30s\x1B[0m\n")
+	viper.SetDefault("fileReadCacheTTL", "2h")
 
 	if viper.GetBool("testMode") {
 		viper.SetDefault("treeCacheTTL", "5s")
@@ -175,6 +180,10 @@ func main() {
 	}
 
 	fao = faoimpls.CreateRemoteToLocalUIDFAO(fao, svcc)
+
+	fao = faoimpls.CreateFileReadCacheFAO(fao, svcc, faoimpls.P_FileReadCacheFAO{
+		TTL: viper.GetDuration("fileReadCacheTTL"),
+	})
 
 	treeCacheFAOTTL, err := time.ParseDuration(viper.GetString("treeCacheTTL"))
 	if err != nil {

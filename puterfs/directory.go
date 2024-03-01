@@ -55,7 +55,7 @@ func (n *DirectoryNode) syncItems() error {
 			fmt.Printf("item named %s has real uid %s\n", item.Name, item.RemoteUID)
 			fmt.Printf("SEEN named %s has local uid %s\n", iseen.Name, iseen.LocalUID)
 			fmt.Printf("SEEN named %s has real uid %s\n", iseen.Name, iseen.RemoteUID)
-			panic(fmt.Errorf("duplicate item name: %s", item.Name))
+			// panic(fmt.Errorf("duplicate item name: %s", item.Name))
 		}
 		seen[item.Name] = item
 	}

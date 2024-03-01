@@ -169,6 +169,9 @@ func (f *PuterFAO) Truncate(path string, size uint64) error {
 	}
 
 	fileContents, err := io.ReadAll(fileContentsReader)
+	if err != nil {
+		return err
+	}
 	fileContentsReader.Close()
 
 	if uint64(len(fileContents)) == size {

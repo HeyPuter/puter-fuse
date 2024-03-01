@@ -16,6 +16,8 @@ func (sdk *PuterSDK) Readdir(logger debug.ILogger, path string) (
 	logger.Log("readdir(%s)", path)
 	payload := map[string]interface{}{}
 	payload["path"] = path
+	payload["no_thumbs"] = true
+	payload["no_assocs"] = true
 
 	u := sdk.GetEndpointURL("readdir")
 
