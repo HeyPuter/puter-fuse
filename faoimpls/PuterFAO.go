@@ -94,6 +94,9 @@ func (f *PuterFAO) Write(path string, src []byte, off int64) (int, error) {
 	}
 
 	fileContents, err := io.ReadAll(fileContentsReader)
+	if err != nil {
+		return 0, nil
+	}
 	fileContentsReader.Close()
 
 	if int64(len(fileContents)) < off+int64(len(src)) {

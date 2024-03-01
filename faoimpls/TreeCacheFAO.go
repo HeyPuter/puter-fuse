@@ -48,6 +48,7 @@ func CreateTreeCacheFAO(
 
 func (f *TreeCacheFAO) ReadDir(path string) ([]fao.NodeInfo, error) {
 	parts := lang.PathSplit(path)
+	fmt.Println("path parts", parts)
 	entry := f.VirtualTreeService.ResolvePath(parts)
 
 	// fmt.Println("The entry in question", entry)
@@ -57,6 +58,12 @@ func (f *TreeCacheFAO) ReadDir(path string) ([]fao.NodeInfo, error) {
 		entry = f.VirtualTreeService.ResolvePath(parts)
 		if entry == nil || entry.LastReaddir.Add(f.TTL).Before(time.Now()) {
 			defer l.Unlock()
+			if entry == nil {
+				fmt.Println("cache miss because entry is nil")
+			}
+			if entry != nil {
+				fmt.Println("cache miss because expired", entry.LastReaddir, f.TTL, time.Now())
+			}
 			return f.readDirAndUpdateCache(path)
 		}
 		l.Unlock()
@@ -83,6 +90,7 @@ func (f *TreeCacheFAO) ReadDir(path string) ([]fao.NodeInfo, error) {
 	if !populate_nodeinfos() {
 		l := f.VirtualTreeService.DirectoriesCacheLock.Lock(path)
 		if !populate_nodeinfos() {
+			fmt.Println("cache miss because nodeInfos do not exist")
 			defer l.Unlock()
 			return f.readDirAndUpdateCache(path)
 		}
@@ -188,9 +196,11 @@ func (f *TreeCacheFAO) readDirAndUpdateCache(path string) ([]fao.NodeInfo, error
 		}
 		f.AssociationService.LocalUIDToNodeInfo.Set(nodeInfo.LocalUID, nodeInfo, f.TTL)
 		f.VirtualTreeService.Link(stat.LocalUID, nodeInfo.LocalUID, nodeInfo.Name)
+		f.AssociationService.PathToLocalUID.Set(filepath.Join(path, nodeInfo.Name), nodeInfo.LocalUID)
 	}
 
 	f.VirtualTreeService.UpdateLastReaddir(stat.LocalUID)
+	f.AssociationService.PathToLocalUID.Set(path, stat.LocalUID)
 	// fmt.Println("result", nodeInfos)
 
 	return nodeInfos, nil

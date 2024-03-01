@@ -44,13 +44,33 @@
         },
         {
             a: 'fixing no_thumbs and no_cache',
-            test: 'node example.js',
+            test: 'ls node_modules',
             _: [
                 ['5.246s', { first_run: true }],
                 ['5.090s'],
                 ['4.915s'],
                 ['5.256s'],
                 ['4.858s'],
+            ]
+        },
+        {
+            a: 'add missing Path->LocalUID association in readdir',
+            test: 'ls node_modules',
+            _: [
+                ['0.790s', { first_run: true }],
+                ['0.731s'],
+                ['0.622s'],
+                ['0.613s'],
+            ]
+        },
+        {
+            a: 'test example express app again',
+            test: 'node example.js',
+            _: [
+                ['14.503s', { first_run: true }],
+                ['0.354s'],
+                ['0.364s'],
+            ]
         }
     ]
 })
