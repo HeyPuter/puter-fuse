@@ -67,7 +67,7 @@ func (replaceReader *ReplaceReader) Read(p []byte) (int, error) {
 		if replaceReader.readPos < replaceReader.offset || replaceReader.readPos >= replaceEnd {
 			replaceReader.debug("reading from source")
 			// Read from the original reader until we reach the offset.
-			n, err := replaceReader.source.Read(p)
+			n, err := replaceReader.source.Read(p[amountWrittenSoFar:])
 			if err != nil && err != io.EOF {
 				return amountWrittenSoFar, err
 			}
@@ -85,11 +85,16 @@ func (replaceReader *ReplaceReader) Read(p []byte) (int, error) {
 				replaceReader.forLaterLen += uint64(forLaterCopyLen)
 			}
 			if replaceReader.readPos < replaceReader.offset && n > int(replaceReader.offset-replaceReader.readPos) {
+				oldN := n
 				n = int(replaceReader.offset - replaceReader.readPos)
-				replaceReader.overreadAmount += uint64(n)
+				replaceReader.overreadAmount += uint64(oldN) - uint64(n)
 			}
 			replaceReader.readPos += uint64(n)
 			amountWrittenSoFar += n
+			if replaceReader.verbose {
+				fmt.Println("amountWrittenSoFar: ", amountWrittenSoFar)
+				fmt.Printf("p: %s\n", p)
+			}
 			continue
 		}
 
@@ -101,6 +106,15 @@ func (replaceReader *ReplaceReader) Read(p []byte) (int, error) {
 			}
 			// Insert the replacement into p
 			copyLen := copy(p[amountWrittenSoFar:], replaceReader.replacement[replaceReader.readPos-replaceReader.offset:])
+			if replaceReader.verbose {
+				fmt.Printf("copyLen: %d\n", copyLen)
+				fmt.Printf("replaceReader.readPos: %d\n", replaceReader.readPos)
+				fmt.Printf("replaceReader.offset: %d\n", replaceReader.offset)
+				fmt.Printf("replaceReader.readPos-replaceReader.offset: %d\n", replaceReader.readPos-replaceReader.offset)
+				fmt.Printf("replaceReader.replacement: %s\n", replaceReader.replacement)
+				fmt.Printf("p: %s\n", p)
+				fmt.Printf("amountWrittenSoFar: %d\n", amountWrittenSoFar)
+			}
 			amountWrittenSoFar += copyLen
 			replaceReader.readPos += uint64(copyLen)
 			continue
@@ -135,6 +149,7 @@ func (replaceReader *ReplaceReader) printState() {
 	fmt.Println("forLaterLen:", replaceReader.forLaterLen)
 	fmt.Println("skippingStarted:", replaceReader.skippingStarted)
 	fmt.Println("skippingDone:", replaceReader.skippingDone)
+	fmt.Println("overreadAmount:", replaceReader.overreadAmount)
 }
 
 func (replaceReader *ReplaceReader) debug(s string) {

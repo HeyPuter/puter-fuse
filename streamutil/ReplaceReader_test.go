@@ -37,8 +37,9 @@ func TestReplaceReader(t *testing.T) {
 		}
 	})
 
-	// bufferSizesToTest := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	bufferSizesToTest := []int{3}
+	// Testing with all these different buffer sizes is very important!
+	// There are a surprising number of edge-cases.
+	bufferSizesToTest := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}
 	for _, bufSize := range bufferSizesToTest {
 		t.Run(fmt.Sprintf("ReplaceReader %d char buffer test", bufSize), func(t *testing.T) {
 			// Create a reader with the string "hello, world"
