@@ -1,4 +1,4 @@
-package kvdotgo
+package lang
 
 import "sync"
 

@@ -1,10 +1,13 @@
 package lang
 
-import "sync"
+import (
+	"sync"
+)
 
 type IMap[TKey any, TVal any] interface {
 	Get(key TKey) (val TVal, ok bool)
 	Set(key TKey, val TVal)
+	GetWithFactory(key TKey, factory func() (TVal, bool, error)) (TVal, bool, error)
 	Has(key TKey) bool
 	Del(key TKey)
 	Keys() []TKey
@@ -23,6 +26,10 @@ func CreateProxyMap[TKey any, TVal any](delegate IMap[TKey, TVal]) *ProxyMap[TKe
 
 func (m *ProxyMap[TKey, TVal]) Get(key TKey) (val TVal, ok bool) {
 	return m.Delegate.Get(key)
+}
+
+func (m *ProxyMap[TKey, TVal]) GetWithFactory(key TKey, factory func() (TVal, bool, error)) (TVal, bool, error) {
+	return m.Delegate.GetWithFactory(key, factory)
 }
 
 func (m *ProxyMap[TKey, TVal]) Set(key TKey, val TVal) {
@@ -64,6 +71,18 @@ func (m *Map[TKey, TVal]) Set(key TKey, val TVal) {
 	m.Items[key] = val
 }
 
+func (m *Map[TKey, TVal]) GetWithFactory(key TKey, factory func() (TVal, bool, error)) (TVal, bool, error) {
+	val, ok := m.Items[key]
+	if !ok {
+		val, ok, err := factory()
+		if ok {
+			m.Items[key] = val
+		}
+		return val, ok, err
+	}
+	return val, ok, nil
+}
+
 func (m *Map[TKey, TVal]) Has(key TKey) bool {
 	_, ok := m.Items[key]
 	return ok
@@ -91,7 +110,8 @@ func (m *Map[TKey, TVal]) Values() []TVal {
 
 type SyncMap[TKey comparable, TVal any] struct {
 	ProxyMap[TKey, TVal]
-	lock sync.RWMutex
+	lock    sync.RWMutex
+	mapLock *CacheStampedeMap[TKey]
 }
 
 func CreateSyncMap[TKey comparable, TVal any](delegate IMap[TKey, TVal]) *SyncMap[TKey, TVal] {
@@ -117,6 +137,27 @@ func (m *SyncMap[TKey, TVal]) Set(key TKey, val TVal) {
 	m.lock.Lock()
 	m.Delegate.Set(key, val)
 	m.lock.Unlock()
+}
+
+func (m *SyncMap[TKey, TVal]) GetWithFactory(key TKey, factory func() (TVal, bool, error)) (TVal, bool, error) {
+	v, ok := m.Get(key)
+	if ok {
+		return v, ok, nil
+	}
+
+	mutex := m.mapLock.Lock(key)
+	defer mutex.Unlock()
+
+	v, ok = m.Get(key)
+	if ok {
+		return v, ok, nil
+	}
+
+	value, ok, err := factory()
+	if ok {
+		m.Set(key, value)
+	}
+	return value, ok, err
 }
 
 func (m *SyncMap[TKey, TVal]) Has(key TKey) bool {

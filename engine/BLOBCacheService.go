@@ -14,6 +14,10 @@ import (
 	"github.com/spf13/afero"
 )
 
+type Releasable interface {
+	Release()
+}
+
 type BLOBCacheReference struct {
 	entry *BLOBCacheEntry
 }

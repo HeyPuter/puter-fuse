@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/HeyPuter/puter-fuse-go/kvdotgo"
 	"github.com/HeyPuter/puter-fuse-go/lang"
 	"github.com/HeyPuter/puter-fuse-go/services"
 )
@@ -48,7 +47,7 @@ func (v *VirtualDirectoryEntry) GetUIDs() []string {
 }
 
 type VirtualTreeService struct {
-	DirectoriesCacheLock *kvdotgo.CacheStampedeMap[string]
+	DirectoriesCacheLock *lang.CacheStampedeMap[string]
 	Directories          lang.IMap[string, *VirtualDirectoryEntry]
 	Files                lang.IMap[string, *VirtualFileEntry]
 }
@@ -62,7 +61,7 @@ func CreateVirtualTreeService() *VirtualTreeService {
 
 	ins.Directories = lang.CreateSyncMap[string, *VirtualDirectoryEntry](nil)
 	ins.Files = lang.CreateSyncMap[string, *VirtualFileEntry](nil)
-	ins.DirectoriesCacheLock = kvdotgo.CreateCacheStampedeMap[string]()
+	ins.DirectoriesCacheLock = lang.CreateCacheStampedeMap[string]()
 
 	return ins
 }

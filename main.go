@@ -134,6 +134,7 @@ func main() {
 	svcc.Set("virtual-tree", engine.CreateVirtualTreeService())
 	svcc.Set("config", engine.CreateConfigService())
 	svcc.Set("blob-cache", engine.CreateBLOBCacheService(afero.NewOsFs()))
+	svcc.Set("write-cache", engine.CreateWriteCacheService())
 
 	for _, svc := range svcc.All() {
 		svc.Init(svcc)
