@@ -5,6 +5,7 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/HeyPuter/puter-fuse-go/engine"
 	"github.com/HeyPuter/puter-fuse-go/fao"
@@ -15,13 +16,13 @@ import (
 
 type node struct {
 	fao.NodeInfo
-	Nodes map[string]*node
+	Nodes lang.IMap[string, *node]
 	Data  []byte
 }
 
 func createNode() *node {
 	return &node{
-		Nodes: make(map[string]*node),
+		Nodes: lang.CreateSyncMap[string, *node](nil),
 		NodeInfo: fao.NodeInfo{
 			CloudItem: putersdk.CloudItem{
 				RemoteUID: uuid.NewString(),
@@ -59,7 +60,7 @@ func (f *MemFAO) resolvePath(path string) (*node, bool) {
 		if !current.IsDir {
 			return nil, false
 		}
-		if next, ok := current.Nodes[part]; ok {
+		if next, ok := current.Nodes.Get(part); ok {
 			current = next
 		} else {
 			return nil, false
@@ -72,7 +73,9 @@ func (f *MemFAO) Stat(path string) (fao.NodeInfo, bool, error) {
 	fmt.Printf("statting %s\n", path)
 	n, ok := f.resolvePath(path)
 	if !ok {
-		return fao.NodeInfo{}, false, nil
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->Stat",
+		}, false, nil
 	}
 	return n.NodeInfo, true, nil
 }
@@ -83,7 +86,7 @@ func (f *MemFAO) ReadDir(path string) ([]fao.NodeInfo, error) {
 		return nil, nil
 	}
 	var nodes []fao.NodeInfo
-	for _, node := range n.Nodes {
+	for _, node := range n.Nodes.Values() {
 		nodes = append(nodes, node.NodeInfo)
 	}
 	return nodes, nil
@@ -128,40 +131,56 @@ func (f *MemFAO) Write(path string, src []byte, off int64) (int, error) {
 func (f *MemFAO) Create(path string, name string) (fao.NodeInfo, error) {
 	n, ok := f.resolvePath(path)
 	fmt.Println(n)
+
+	// TODO: errors here need to map to filesystem error numbers
 	if !ok {
-		return fao.NodeInfo{}, nil
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->Create (path not found)",
+		}, fao.Errorf(syscall.ENOENT, "path %s does not exist", path)
+		//fmt.Errorf("path %s does not exist", path)
 	}
 	if !n.IsDir {
-		return fao.NodeInfo{}, nil
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->Create (path not a directory)",
+		}, fao.Errorf(syscall.ENOTDIR, "path %s is not a directory", path)
 	}
-	if _, ok := n.Nodes[name]; ok {
-		return fao.NodeInfo{}, nil
+	if _, ok := n.Nodes.Get(name); ok {
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->Create (node already exists)",
+		}, fao.Errorf(syscall.EEXIST, "node %s already exists", name)
 	}
+
 	newNode := createNode()
 	newNode.Name = name
 	newNode.Path = filepath.Join(path, name)
 	newNode.Data = []byte{}
-	n.Nodes[name] = newNode
-	return n.Nodes[name].NodeInfo, nil
+	n.Nodes.Set(name, newNode)
+	return newNode.NodeInfo, nil
 }
 
 func (f *MemFAO) MkDir(parent, path string) (fao.NodeInfo, error) {
 	n, ok := f.resolvePath(parent)
 	if !ok {
-		return fao.NodeInfo{}, nil
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->MkDir (parent not found)",
+		}, fao.Errorf(syscall.ENOENT, "parent %s does not exist", parent)
 	}
 	if !n.IsDir {
-		return fao.NodeInfo{}, nil
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->MkDir (parent not a directory)",
+		}, fao.Errorf(syscall.ENOTDIR, "parent %s is not a directory", parent)
 	}
-	if _, ok := n.Nodes[path]; ok {
-		return fao.NodeInfo{}, nil
+	if _, ok := n.Nodes.Get(path); ok {
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->MkDir (node already exists)",
+		}, fao.Errorf(syscall.EEXIST, "node %s already exists", path)
 	}
 	newNode := createNode()
 	newNode.Name = path
 	newNode.Path = filepath.Join(parent, path)
 	newNode.IsDir = true
-	n.Nodes[path] = newNode
-	return n.Nodes[path].NodeInfo, nil
+	n.Nodes.Set(path, newNode)
+	return newNode.NodeInfo, nil
 }
 
 func (f *MemFAO) Truncate(path string, size uint64) error {
@@ -181,19 +200,25 @@ func (f *MemFAO) Truncate(path string, size uint64) error {
 func (f *MemFAO) Symlink(parent, name, target string) (fao.NodeInfo, error) {
 	n, ok := f.resolvePath(parent)
 	if !ok {
-		return fao.NodeInfo{}, nil
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->Symlink (parent not found)",
+		}, fao.Errorf(syscall.ENOENT, "parent %s does not exist", parent)
 	}
 	if !n.IsDir {
-		return fao.NodeInfo{}, nil
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->Symlink (parent not a directory)",
+		}, fao.Errorf(syscall.ENOTDIR, "parent %s is not a directory", parent)
 	}
-	if _, ok := n.Nodes[name]; ok {
-		return fao.NodeInfo{}, nil
+	if _, ok := n.Nodes.Get(name); ok {
+		return fao.NodeInfo{
+			DebugName: "empty from MemFAO->Symlink (node already exists)",
+		}, fao.Errorf(syscall.EEXIST, "node %s already exists", name)
 	}
 	newNode := createNode()
 	newNode.IsSymlink = true
 	newNode.SymlinkPath = target
-	n.Nodes[name] = newNode
-	return n.Nodes[name].NodeInfo, nil
+	n.Nodes.Set(name, newNode)
+	return newNode.NodeInfo, nil
 }
 
 func (f *MemFAO) Unlink(path string) error {
@@ -202,13 +227,13 @@ func (f *MemFAO) Unlink(path string) error {
 
 	n, ok := f.resolvePath(parent)
 	if !ok {
-		return nil
+		return fao.Errorf(syscall.ENOENT, "parent %s does not exist", parent)
 	}
-	if _, ok := n.Nodes[name]; !ok {
-		return nil
+	if _, ok := n.Nodes.Get(name); !ok {
+		return fao.Errorf(syscall.ENOENT, "node %s does not exist", name)
 	}
 	fmt.Printf("deleting %s from %s\n", name, parent)
-	delete(n.Nodes, name)
+	n.Nodes.Del(name)
 	return nil
 }
 
@@ -216,29 +241,29 @@ func (f *MemFAO) Move(source, parent, name string) error {
 	sourceParent := filepath.Dir(source)
 	sourceParentNode, ok := f.resolvePath(sourceParent)
 	if !ok {
-		return nil
+		return fao.Errorf(syscall.ENOENT, "parent %s does not exist", sourceParent)
 	}
 	sourceNode, ok := f.resolvePath(source)
 	if !ok {
-		return nil
+		return fao.Errorf(syscall.ENOENT, "node %s does not exist", source)
 	}
-	delete(sourceParentNode.Nodes, filepath.Base(source))
+	sourceParentNode.Nodes.Del(filepath.Base(source))
 
 	newParentNode, ok := f.resolvePath(parent)
 	if !ok {
-		return nil
+		return fao.Errorf(syscall.ENOENT, "parent %s does not exist", parent)
 	}
-	newParentNode.Nodes[name] = sourceNode
+	newParentNode.Nodes.Set(name, sourceNode)
 	return nil
 }
 
 func (f *MemFAO) ReadAll(path string) (io.ReadCloser, error) {
 	n, ok := f.resolvePath(path)
 	if !ok {
-		return nil, nil
+		return nil, fao.Errorf(syscall.ENOENT, "node %s does not exist", path)
 	}
 	if n.IsDir {
-		return nil, nil
+		return nil, fao.Errorf(syscall.EISDIR, "node %s is a directory", path)
 	}
 	return io.NopCloser(strings.NewReader(string(n.Data))), nil
 }

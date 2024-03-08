@@ -1,5 +1,10 @@
 package fao
 
+import (
+	"fmt"
+	"syscall"
+)
+
 type ErrDoesNotExist struct {
 	Path string
 }
@@ -14,4 +19,20 @@ type ErrNotDirectory struct {
 
 func (e *ErrNotDirectory) Error() string {
 	return "Not a directory: " + e.Path
+}
+
+type FAOError struct {
+	Errno syscall.Errno
+	From  error
+}
+
+func (e *FAOError) Error() string {
+	return e.From.Error()
+}
+
+func Errorf(errno syscall.Errno, format string, a ...interface{}) error {
+	return &FAOError{
+		Errno: errno,
+		From:  fmt.Errorf(format, a...),
+	}
 }

@@ -203,10 +203,7 @@ func main() {
 		},
 	)
 
-	fao = faoimpls.CreateFileWriteCacheFAO(
-		fao,
-		svcc,
-	)
+	fao = faoimpls.CreateFileWriteCacheFAO(fao, svcc)
 
 	fao = faoimpls.CreateLogFAO(
 		fao,
