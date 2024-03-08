@@ -122,7 +122,8 @@ func CreateSyncMap[TKey comparable, TVal any](delegate IMap[TKey, TVal]) *SyncMa
 		ProxyMap: ProxyMap[TKey, TVal]{
 			Delegate: delegate,
 		},
-		lock: sync.RWMutex{},
+		lock:    sync.RWMutex{},
+		mapLock: CreateCacheStampedeMap[TKey](),
 	}
 }
 

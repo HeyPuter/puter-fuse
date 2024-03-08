@@ -1,6 +1,8 @@
 package faoimpls
 
 import (
+	"fmt"
+
 	"github.com/HeyPuter/puter-fuse-go/engine"
 	"github.com/HeyPuter/puter-fuse-go/fao"
 	"github.com/HeyPuter/puter-fuse-go/services"
@@ -47,6 +49,8 @@ func (f *FileWriteCacheFAO) Read(path string, dest []byte, offset int64) (int, e
 		GetWithFactory(path, func() (string, bool, error) {
 			return uuid.NewString(), true, nil
 		})
+
+	fmt.Println(localUID)
 
 	f.writeCacheService.ApplyToBuffer(localUID, dest, offset)
 

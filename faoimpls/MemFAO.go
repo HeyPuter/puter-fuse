@@ -15,13 +15,13 @@ import (
 
 type node struct {
 	fao.NodeInfo
-	Nodes map[string]node
+	Nodes map[string]*node
 	Data  []byte
 }
 
-func createNode() node {
-	return node{
-		Nodes: make(map[string]node),
+func createNode() *node {
+	return &node{
+		Nodes: make(map[string]*node),
 		NodeInfo: fao.NodeInfo{
 			CloudItem: putersdk.CloudItem{
 				RemoteUID: uuid.NewString(),
@@ -32,7 +32,7 @@ func createNode() node {
 
 type MemFAO struct {
 	fao.BaseFAO
-	Tree node
+	Tree *node
 }
 
 func CreateMemFAO() *MemFAO {
@@ -50,19 +50,19 @@ func CreateMemFAO() *MemFAO {
 	return fao
 }
 
-func (f *MemFAO) resolvePath(path string) (node, bool) {
+func (f *MemFAO) resolvePath(path string) (*node, bool) {
 	parts := lang.PathSplit(path)
 	current := f.Tree
 	// fmt.Println("starting with", current)
 	// fmt.Println("travsing", parts)
 	for _, part := range parts {
 		if !current.IsDir {
-			return node{}, false
+			return nil, false
 		}
 		if next, ok := current.Nodes[part]; ok {
 			current = next
 		} else {
-			return node{}, false
+			return nil, false
 		}
 	}
 	return current, true
@@ -91,6 +91,7 @@ func (f *MemFAO) ReadDir(path string) ([]fao.NodeInfo, error) {
 
 func (f *MemFAO) Read(path string, dest []byte, off int64) (int, error) {
 	n, ok := f.resolvePath(path)
+	fmt.Println("file node?", n)
 	if !ok {
 		return 0, nil
 	}
@@ -106,6 +107,7 @@ func (f *MemFAO) Read(path string, dest []byte, off int64) (int, error) {
 
 func (f *MemFAO) Write(path string, src []byte, off int64) (int, error) {
 	n, ok := f.resolvePath(path)
+	fmt.Println("file node?", n)
 	if !ok {
 		return 0, nil
 	}
@@ -119,6 +121,7 @@ func (f *MemFAO) Write(path string, src []byte, off int64) (int, error) {
 		n.Data = append(n.Data, make([]byte, off+int64(len(src))-int64(len(n.Data)))...)
 	}
 	nBytes := copy(n.Data[off:], src)
+	n.Size = uint64(len(n.Data))
 	return nBytes, nil
 }
 

@@ -80,6 +80,8 @@ func main() {
 
 	if viper.GetBool("testMode") {
 		viper.SetDefault("treeCacheTTL", "5s")
+
+		viper.SetDefault("testDelay", "200ms")
 	}
 
 	if !viper.IsSet("cacheDir") {
@@ -163,7 +165,7 @@ func main() {
 					[]byte(fmt.Sprintf("file-%d", i)), 0)
 			}
 		}
-		fao = faoimpls.CreateSlowFAO(fao, 200*time.Millisecond)
+		fao = faoimpls.CreateSlowFAO(fao, viper.GetDuration("testDelay"))
 		fao = faoimpls.CreateLogFAO(
 			fao,
 			svcc.Get("log").(*debug.LogService).GetLogger("test-storage"),
@@ -199,6 +201,11 @@ func main() {
 			VirtualTreeService: svcc.Get("virtual-tree").(*engine.VirtualTreeService),
 			AssociationService: svcc.Get("association").(*engine.AssociationService),
 		},
+	)
+
+	fao = faoimpls.CreateFileWriteCacheFAO(
+		fao,
+		svcc,
 	)
 
 	fao = faoimpls.CreateLogFAO(
