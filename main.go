@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -40,13 +39,6 @@ func main() {
 	args := os.Args[1:]
 	fmt.Println(args)
 
-	token, err := ioutil.ReadFile("token")
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("token: |%s|\n", string(token))
-
 	// If it doesn't exist, add .config/puterfuse
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
@@ -67,7 +59,11 @@ func main() {
 	viper.AddConfigPath("$HOME/.config/puterfuse")
 	err = viper.ReadInConfig()
 	if err != nil {
-		panic(err)
+		configure()
+		err = viper.ReadInConfig()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	// viper defaults
