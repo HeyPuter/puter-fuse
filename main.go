@@ -184,26 +184,33 @@ func main() {
 
 	fao = faoimpls.CreateRemoteToLocalUIDFAO(fao, svcc)
 
-	fao = faoimpls.CreateFileReadCacheFAO(fao, svcc, faoimpls.P_FileReadCacheFAO{
-		TTL: viper.GetDuration("fileReadCacheTTL"),
-	})
+	if viper.GetBool("experimental_cache") {
+		fao = faoimpls.CreateFileReadCacheFAO(fao, svcc, faoimpls.P_FileReadCacheFAO{
+			TTL: viper.GetDuration("fileReadCacheTTL"),
+		})
+	}
 
 	treeCacheFAOTTL, err := time.ParseDuration(viper.GetString("treeCacheTTL"))
 	if err != nil {
 		panic(err)
 	}
-	fao = faoimpls.CreateTreeCacheFAO(
-		fao,
-		faoimpls.P_TreeCacheFAO{
-			TTL: treeCacheFAOTTL,
-		},
-		faoimpls.D_TreeCacheFAO{
-			VirtualTreeService: svcc.Get("virtual-tree").(*engine.VirtualTreeService),
-			AssociationService: svcc.Get("association").(*engine.AssociationService),
-		},
-	)
 
-	fao = faoimpls.CreateFileWriteCacheFAO(fao, svcc)
+	if viper.GetBool("experimental_cache") {
+		fao = faoimpls.CreateTreeCacheFAO(
+			fao,
+			faoimpls.P_TreeCacheFAO{
+				TTL: treeCacheFAOTTL,
+			},
+			faoimpls.D_TreeCacheFAO{
+				VirtualTreeService: svcc.Get("virtual-tree").(*engine.VirtualTreeService),
+				AssociationService: svcc.Get("association").(*engine.AssociationService),
+			},
+		)
+	}
+
+	if viper.GetBool("experimental_cache") {
+		fao = faoimpls.CreateFileWriteCacheFAO(fao, svcc)
+	}
 
 	fao = faoimpls.CreateLogFAO(
 		fao,

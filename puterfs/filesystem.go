@@ -27,6 +27,9 @@ type Filesystem struct {
 }
 
 func (pfs *Filesystem) Init() {
+	if pfs.UidInoMap != nil {
+		panic("Filesystem already initialized")
+	}
 	pfs.UidInoMap = map[string]uint64{}
 	pfs.Nodes = map[uint64]fs.InodeEmbedder{}
 }
@@ -55,6 +58,8 @@ func (fs *Filesystem) GetNodeFromCloudItem(cloudItem fao.NodeInfo) fs.InodeEmbed
 func (fs *Filesystem) GetInoFromUID(uid string) uint64 {
 	fs.UidInoMapMutex.RLock()
 	ino, exists := fs.UidInoMap[uid]
+	fmt.Printf("Filesystem mem address: %p\n", fs)
+	fmt.Println("GetInoFromUID (A)", uid, ino, exists)
 	fs.UidInoMapMutex.RUnlock()
 	if !exists {
 		fs.UidInoMapMutex.Lock()
@@ -63,10 +68,12 @@ func (fs *Filesystem) GetInoFromUID(uid string) uint64 {
 		if !exists {
 			fs.InoCounter++
 			ino = fs.InoCounter
+			fmt.Println("new ino", ino, "for uid", uid)
 			fs.UidInoMap[uid] = ino
 		}
 		fs.UidInoMapMutex.Unlock()
 	}
+	fmt.Println("GetInoFromUID (B)", uid, ino, exists)
 	return ino
 }
 

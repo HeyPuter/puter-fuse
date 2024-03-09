@@ -16,6 +16,10 @@ type CloudItemNode struct {
 	CloudItem fao.NodeInfo
 }
 
+func (n *CloudItemNode) Init() {
+	// NO-OP to prevent Filesystem.Init from being called
+}
+
 func (n *CloudItemNode) GetStableAttrMode() uint32 {
 	if n.CloudItem.IsDir {
 		return syscall.S_IFDIR
