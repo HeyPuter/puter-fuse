@@ -3,11 +3,46 @@
 <h4 align="center">Access Puter's cloud filesystem on your device</h4>
 <hr>
 
-## Current Status
+## What does this do?
 
-**under development**
+This program lets you mount your files from puter.com as though
+they were another harddrive. This works on Linux and Mac OS
+using the FUSE interface.
 
-## What's a FUSE?
+## How to use
+
+[Make sure Go is installed.](https://go.dev/doc/install)
+This has been tested on version `go1.22.0`.
+
+Then, run this command to install `puter-fuse-go`:
+
+```sh
+go install github.com/HeyPuter/puter-fuse-go@latest
+```
+
+## Configuration
+
+### First-time Configuration
+
+The first-time configuration will ask you for your Puter username
+and password. If you don't have an account on puter.com you'll need
+one in order to use this FUSE driver. Note that once we release the
+open-source Puter Kernel you'll be able to login to any instance of
+that instead.
+
+Entering your username and password, and accepting the default options
+for all other questions, should be sufficient for most installations.
+
+### Configuration file
+
+Configuration is saved to:
+
+- On Linux and Mac OS, `$HOME/.config/puterfuse/config.json`
+- On Windows, `%AppData%/puterfuse/config.json`
+
+## Technical Information
+
+### What's a FUSE?
 
 Filesystem in USErspace (FUSE) is an interface for filesystem
 drivers that are loaded as userspace programs rather than in
@@ -16,3 +51,10 @@ and Mac OS.
 
 Puter's FUSE driver allows access to a cloud filesystem in a
 way that looks like an ordinary local filesystem.
+
+### Performance and Caching
+
+Currently directory trees support read and write-back caching.
+The contents of files are not currently cached by default, but
+you can set `experimental_cache` to `true` in the configuration
+file to enable read and write-back caching for files.
