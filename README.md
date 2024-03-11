@@ -1,11 +1,11 @@
 <h3 align="center"><img width="300" alt="HiTIDE logo" src="./doc/logo.png"></h3>
-<h3 align="center">FUSE Driver for Puter</h3>
+<h3 align="center">FUSE Driver for the Puter Internet OS</h3>
 <h4 align="center">Access Puter's filesystem on your device</h4>
 <hr>
 
 ## What does this do?
 
-This program lets you mount your files from puter.com as though
+This program lets you mount your files from the [Puter Open-Source Internet OS](https://github.com/HeyPuter/puter) as though
 they were another harddrive. This works on Linux and Mac OS
 using the FUSE interface.
 
