@@ -14,10 +14,10 @@ using the FUSE interface.
 [Make sure Go is installed.](https://go.dev/doc/install)
 This has been tested on version `go1.22.0`.
 
-Then, run this command to install `puter-fuse-go`:
+Then, run this command to install `puter-fuse`:
 
 ```sh
-go install github.com/HeyPuter/puter-fuse-go@latest
+go install github.com/HeyPuter/puter-fuse@latest
 ```
 
 ## Configuration

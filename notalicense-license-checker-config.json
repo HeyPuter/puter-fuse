@@ -1,0 +1,14 @@
+{
+    "ignore": ["**/!(*.go)"],
+    "license": "doc/license_header.txt",
+    "licenseFormats": {
+        "go": {
+            "prepend": "/*",
+            "append": " */",
+            "eachLine": {
+                "prepend": " * "
+            }
+        }
+    },
+    "trailingWhitespace": "TRIM"
+}
