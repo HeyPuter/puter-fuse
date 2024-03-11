@@ -25,7 +25,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/HeyPuter/puter-fuse-go/debug"
+	"github.com/HeyPuter/puter-fuse/debug"
 )
 
 func (sdk *PuterSDK) Readdir(logger debug.ILogger, path string) (

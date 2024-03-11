@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/HeyPuter/puter-fuse-go/lang"
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/lang"
+	"github.com/HeyPuter/puter-fuse/services"
 )
 
 const (

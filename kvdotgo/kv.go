@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/HeyPuter/puter-fuse-go/lang"
+	"github.com/HeyPuter/puter-fuse/lang"
 )
 
 type CacheEntry[TVal any] struct {

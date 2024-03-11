@@ -25,10 +25,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/HeyPuter/puter-fuse-go/engine"
-	"github.com/HeyPuter/puter-fuse-go/fao"
-	"github.com/HeyPuter/puter-fuse-go/lang"
-	"github.com/HeyPuter/puter-fuse-go/putersdk"
+	"github.com/HeyPuter/puter-fuse/engine"
+	"github.com/HeyPuter/puter-fuse/fao"
+	"github.com/HeyPuter/puter-fuse/lang"
+	"github.com/HeyPuter/puter-fuse/putersdk"
 	"github.com/google/uuid"
 )
 

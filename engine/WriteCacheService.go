@@ -21,9 +21,9 @@ package engine
 import (
 	"io"
 
-	"github.com/HeyPuter/puter-fuse-go/lang"
-	"github.com/HeyPuter/puter-fuse-go/services"
-	"github.com/HeyPuter/puter-fuse-go/streamutil"
+	"github.com/HeyPuter/puter-fuse/lang"
+	"github.com/HeyPuter/puter-fuse/services"
+	"github.com/HeyPuter/puter-fuse/streamutil"
 )
 
 type Mutation interface {

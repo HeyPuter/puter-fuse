@@ -22,7 +22,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/HeyPuter/puter-fuse-go/fao"
+	"github.com/HeyPuter/puter-fuse/fao"
 )
 
 type CleanPathFAO struct {

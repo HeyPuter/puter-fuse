@@ -24,11 +24,11 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/HeyPuter/puter-fuse-go/debug"
-	"github.com/HeyPuter/puter-fuse-go/engine"
-	"github.com/HeyPuter/puter-fuse-go/fao"
-	"github.com/HeyPuter/puter-fuse-go/localutil"
-	"github.com/HeyPuter/puter-fuse-go/putersdk"
+	"github.com/HeyPuter/puter-fuse/debug"
+	"github.com/HeyPuter/puter-fuse/engine"
+	"github.com/HeyPuter/puter-fuse/fao"
+	"github.com/HeyPuter/puter-fuse/localutil"
+	"github.com/HeyPuter/puter-fuse/putersdk"
 	"github.com/google/uuid"
 )
 

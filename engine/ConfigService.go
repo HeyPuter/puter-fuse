@@ -19,7 +19,7 @@
 package engine
 
 import (
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/services"
 	"github.com/btvoidx/mint"
 	"github.com/spf13/viper"
 )

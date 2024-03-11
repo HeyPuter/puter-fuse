@@ -21,7 +21,7 @@ package puterfs
 import (
 	"syscall"
 
-	"github.com/HeyPuter/puter-fuse-go/fao"
+	"github.com/HeyPuter/puter-fuse/fao"
 )
 
 type HasPuterNodeCapabilities interface {

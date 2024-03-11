@@ -23,8 +23,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/HeyPuter/puter-fuse-go/debug"
-	"github.com/HeyPuter/puter-fuse-go/fao"
+	"github.com/HeyPuter/puter-fuse/debug"
+	"github.com/HeyPuter/puter-fuse/fao"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 )

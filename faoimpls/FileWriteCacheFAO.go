@@ -21,9 +21,9 @@ package faoimpls
 import (
 	"fmt"
 
-	"github.com/HeyPuter/puter-fuse-go/engine"
-	"github.com/HeyPuter/puter-fuse-go/fao"
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/engine"
+	"github.com/HeyPuter/puter-fuse/fao"
+	"github.com/HeyPuter/puter-fuse/services"
 	"github.com/google/uuid"
 )
 

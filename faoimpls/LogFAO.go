@@ -21,8 +21,8 @@ package faoimpls
 import (
 	"io"
 
-	"github.com/HeyPuter/puter-fuse-go/debug"
-	"github.com/HeyPuter/puter-fuse-go/fao"
+	"github.com/HeyPuter/puter-fuse/debug"
+	"github.com/HeyPuter/puter-fuse/fao"
 )
 
 // LogFAO struct definition.

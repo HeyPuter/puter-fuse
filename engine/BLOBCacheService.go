@@ -26,8 +26,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/HeyPuter/puter-fuse-go/lang"
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/lang"
+	"github.com/HeyPuter/puter-fuse/services"
 	"github.com/google/uuid"
 	"github.com/spf13/afero"
 )

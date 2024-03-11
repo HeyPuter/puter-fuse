@@ -21,7 +21,7 @@ package engine_test
 import (
 	"testing"
 
-	"github.com/HeyPuter/puter-fuse-go/engine"
+	"github.com/HeyPuter/puter-fuse/engine"
 )
 
 func TestWriteMutation(t *testing.T) {

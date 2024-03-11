@@ -22,8 +22,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/HeyPuter/puter-fuse-go/putersdk"
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/putersdk"
+	"github.com/HeyPuter/puter-fuse/services"
 )
 
 type NodeType int

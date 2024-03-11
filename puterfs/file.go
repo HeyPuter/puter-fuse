@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/HeyPuter/puter-fuse-go/debug"
+	"github.com/HeyPuter/puter-fuse/debug"
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/spf13/viper"

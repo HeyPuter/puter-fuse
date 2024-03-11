@@ -23,9 +23,9 @@ import (
 	"log"
 	"sync"
 
-	"github.com/HeyPuter/puter-fuse-go/fao"
-	"github.com/HeyPuter/puter-fuse-go/putersdk"
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/fao"
+	"github.com/HeyPuter/puter-fuse/putersdk"
+	"github.com/HeyPuter/puter-fuse/services"
 	"github.com/hanwen/go-fuse/v2/fs"
 )
 

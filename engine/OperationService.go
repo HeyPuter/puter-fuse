@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/HeyPuter/puter-fuse-go/putersdk"
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/putersdk"
+	"github.com/HeyPuter/puter-fuse/services"
 	"github.com/google/uuid"
 )
 

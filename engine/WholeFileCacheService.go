@@ -21,7 +21,7 @@ package engine
 import (
 	"sync"
 
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/services"
 )
 
 type WholeFileCacheService struct {

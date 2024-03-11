@@ -21,10 +21,10 @@ package engine
 import (
 	"sync"
 
-	"github.com/HeyPuter/puter-fuse-go/fao"
-	"github.com/HeyPuter/puter-fuse-go/kvdotgo"
-	"github.com/HeyPuter/puter-fuse-go/lang"
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/fao"
+	"github.com/HeyPuter/puter-fuse/kvdotgo"
+	"github.com/HeyPuter/puter-fuse/lang"
+	"github.com/HeyPuter/puter-fuse/services"
 	"github.com/google/uuid"
 )
 

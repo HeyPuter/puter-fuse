@@ -21,7 +21,7 @@ package debug
 import (
 	"fmt"
 
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/services"
 )
 
 type ILogger interface {

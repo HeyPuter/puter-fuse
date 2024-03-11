@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/HeyPuter/puter-fuse-go/engine"
-	"github.com/HeyPuter/puter-fuse-go/fao"
-	"github.com/HeyPuter/puter-fuse-go/services"
+	"github.com/HeyPuter/puter-fuse/engine"
+	"github.com/HeyPuter/puter-fuse/fao"
+	"github.com/HeyPuter/puter-fuse/services"
 )
 
 type P_FileReadCacheFAO struct {

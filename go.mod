@@ -1,4 +1,4 @@
-module github.com/HeyPuter/puter-fuse-go
+module github.com/HeyPuter/puter-fuse
 
 go 1.21.0
 

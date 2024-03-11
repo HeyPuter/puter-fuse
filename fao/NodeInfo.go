@@ -18,7 +18,7 @@
  */
 package fao
 
-import "github.com/HeyPuter/puter-fuse-go/putersdk"
+import "github.com/HeyPuter/puter-fuse/putersdk"
 
 type NodeInfo struct {
 	DebugName string
