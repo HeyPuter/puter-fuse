@@ -52,6 +52,10 @@ func (fs *Filesystem) GetNodeFromCloudItem(cloudItem fao.NodeInfo) fs.InodeEmbed
 		fs.Nodes[ino] = node
 		fs.NodesMutex.Unlock()
 	}
+
+	iface := node.(HasPuterNodeCapabilities)
+	iface.SetCloudItem(cloudItem)
+
 	return node
 }
 

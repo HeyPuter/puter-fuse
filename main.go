@@ -67,12 +67,12 @@ func main() {
 	}
 
 	// viper defaults
-	viper.SetDefault("treeCacheTTL", "2h")
+	viper.SetDefault("treeCacheTTL", "5s")
 	// viper.SetDefault("treeCacheTTL", "2s")
 
 	// TODO: change this default before release
 	fmt.Printf("\x1B[33;1mWARNING: fileReadCacheTTL DEFAULTS TO 30s\x1B[0m\n")
-	viper.SetDefault("fileReadCacheTTL", "2h")
+	viper.SetDefault("fileReadCacheTTL", "5s")
 
 	if viper.GetBool("testMode") {
 		viper.SetDefault("treeCacheTTL", "5s")
@@ -191,18 +191,16 @@ func main() {
 		panic(err)
 	}
 
-	if viper.GetBool("experimental_cache") {
-		fao = faoimpls.CreateTreeCacheFAO(
-			fao,
-			faoimpls.P_TreeCacheFAO{
-				TTL: treeCacheFAOTTL,
-			},
-			faoimpls.D_TreeCacheFAO{
-				VirtualTreeService: svcc.Get("virtual-tree").(*engine.VirtualTreeService),
-				AssociationService: svcc.Get("association").(*engine.AssociationService),
-			},
-		)
-	}
+	fao = faoimpls.CreateTreeCacheFAO(
+		fao,
+		faoimpls.P_TreeCacheFAO{
+			TTL: treeCacheFAOTTL,
+		},
+		faoimpls.D_TreeCacheFAO{
+			VirtualTreeService: svcc.Get("virtual-tree").(*engine.VirtualTreeService),
+			AssociationService: svcc.Get("association").(*engine.AssociationService),
+		},
+	)
 
 	if viper.GetBool("experimental_cache") {
 		fao = faoimpls.CreateFileWriteCacheFAO(fao, svcc)

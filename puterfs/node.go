@@ -9,6 +9,7 @@ import (
 type HasPuterNodeCapabilities interface {
 	GetStableAttrMode() uint32
 	GetIno() uint64
+	SetCloudItem(cloudItem fao.NodeInfo)
 }
 
 type CloudItemNode struct {
@@ -35,4 +36,8 @@ func (n *CloudItemNode) GetStableAttrMode() uint32 {
 func (n *CloudItemNode) GetIno() uint64 {
 	// TODO: use LocalUID instead of RemoteUID
 	return n.Filesystem.GetInoFromUID(n.CloudItem.RemoteUID)
+}
+
+func (n *CloudItemNode) SetCloudItem(cloudItem fao.NodeInfo) {
+	n.CloudItem = cloudItem
 }
