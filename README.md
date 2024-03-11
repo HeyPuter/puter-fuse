@@ -17,7 +17,7 @@ This has been tested on version `go1.22.0`.
 Then, run this command to install `puter-fuse`:
 
 ```sh
-go install github.com/HeyPuter/puter-fuse@latest
+go install github.com/HeyPuter/puter-fuse@v1.0.0
 ```
 
 ## Configuration
