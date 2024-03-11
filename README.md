@@ -1,6 +1,6 @@
 <h3 align="center"><img width="300" alt="HiTIDE logo" src="./doc/logo.png"></h3>
 <h3 align="center">FUSE Driver for Puter</h3>
-<h4 align="center">Access Puter's cloud filesystem on your device</h4>
+<h4 align="center">Access Puter's filesystem on your device</h4>
 <hr>
 
 ## What does this do?
