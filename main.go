@@ -21,7 +21,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/HeyPuter/puter-fuse/debug"
@@ -53,9 +55,27 @@ func (fh *PuterFSFile) ReplaceData(newData []byte) {
 	fh.Node.Contents = newData
 }
 
+type ProgramState struct {
+	cleanupSignal chan os.Signal
+	cleanupTasks  []func()
+}
+
+var programState ProgramState
+
 func main() {
 	args := os.Args[1:]
 	fmt.Println(args)
+
+	programState.cleanupSignal = make(chan os.Signal, 1)
+	signal.Notify(programState.cleanupSignal, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(programState.cleanupSignal)
+	go func() {
+		<-programState.cleanupSignal
+		for _, task := range programState.cleanupTasks {
+			task()
+		}
+		os.Exit(0)
+	}()
 
 	// If it doesn't exist, add .config/puterfuse
 	userConfigDir, err := os.UserConfigDir()
@@ -255,6 +275,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	programState.cleanupTasks = append(programState.cleanupTasks, func() {
+		fmt.Println(" <- I see your \"^C\"; unmounting...")
+		server.Unmount()
+	})
 
 	// Print debug info
 	fmt.Println("Server started")
