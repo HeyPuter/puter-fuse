@@ -37,8 +37,7 @@ for all other questions, should be sufficient for most installations.
 
 Configuration is saved to:
 
-- On Linux and Mac OS, `$HOME/.config/puterfuse/config.json`
-- On Windows, `%AppData%/puterfuse/config.json`
+- `$HOME/.config/puterfuse/config.json`
 
 ## Technical Information
 
