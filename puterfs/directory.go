@@ -64,7 +64,7 @@ func (n *DirectoryNode) syncItems() error {
 	// check for duplicate item names
 	seen := map[string]fao.NodeInfo{}
 	for _, item := range items {
-		fmt.Println("item", item)
+		// fmt.Println("item", item)
 		if item.Path == "" {
 			panic("item is missing path")
 		}

@@ -177,6 +177,9 @@ func main() {
 	}
 
 	var fao fao.FAO
+	var faoBuilder fao.FAOBuilder
+	faoBuilder = &faoimpls.NullFAOBuilder{}
+
 	if viper.GetBool("testMode") {
 		memFAO := faoimpls.CreateMemFAO()
 		fao = memFAO
@@ -244,10 +247,13 @@ func main() {
 		fao = faoimpls.CreateFileWriteCacheFAO(fao, svcc)
 	}
 
-	fao = faoimpls.CreateLogFAO(
-		fao,
+	// Trying out FAOBuilder with minimal changes
+	faoBuilder.Set(fao)
+	faoBuilder.Add(faoimpls.CreateLogFAO(
+		nil,
 		svcc.Get("log").(*debug.LogService).GetLogger("top"),
-	)
+	))
+	fao = faoBuilder.Build()
 
 	puterFS := &puterfs.Filesystem{
 		SDK:      sdk,

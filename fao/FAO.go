@@ -37,3 +37,14 @@ type FAO interface {
 	Move(source string, parent string, name string) error
 	ReadAll(path string) (io.ReadCloser, error)
 }
+
+type FAOProxy interface {
+	FAO
+	SetDelegate(delegate FAO) error
+}
+
+type FAOBuilder interface {
+	Set(fao FAO)
+	Add(fao FAOProxy)
+	Build() FAO
+}
