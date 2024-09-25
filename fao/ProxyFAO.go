@@ -69,3 +69,7 @@ func (p *ProxyFAO) Move(source string, parent string, name string) error {
 func (p *ProxyFAO) ReadAll(path string) (io.ReadCloser, error) {
 	return p.Delegate.ReadAll(path)
 }
+
+func (p *ProxyFAO) SetDelegate(delegate FAO) {
+	p.Delegate = delegate
+}

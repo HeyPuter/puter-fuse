@@ -28,7 +28,7 @@ import (
 
 	"github.com/HeyPuter/puter-fuse/debug"
 	"github.com/HeyPuter/puter-fuse/engine"
-	"github.com/HeyPuter/puter-fuse/fao"
+	faopkg "github.com/HeyPuter/puter-fuse/fao"
 	"github.com/HeyPuter/puter-fuse/faoimpls"
 	"github.com/HeyPuter/puter-fuse/puterfs"
 	"github.com/HeyPuter/puter-fuse/putersdk"
@@ -176,7 +176,10 @@ func main() {
 		svc.Init(svcc)
 	}
 
-	var fao fao.FAO
+	var fao faopkg.FAO
+	var faoBuilder faopkg.FAOBuilder
+	faoBuilder = &faoimpls.NullFAOBuilder{}
+
 	if viper.GetBool("testMode") {
 		memFAO := faoimpls.CreateMemFAO()
 		fao = memFAO
@@ -244,10 +247,13 @@ func main() {
 		fao = faoimpls.CreateFileWriteCacheFAO(fao, svcc)
 	}
 
-	fao = faoimpls.CreateLogFAO(
-		fao,
+	// Trying out FAOBuilder with minimal changes
+	faoBuilder.Set(fao)
+	faoBuilder.Add(faoimpls.CreateLogFAO(
+		nil,
 		svcc.Get("log").(*debug.LogService).GetLogger("top"),
-	)
+	))
+	fao = faoBuilder.Build()
 
 	puterFS := &puterfs.Filesystem{
 		SDK:      sdk,

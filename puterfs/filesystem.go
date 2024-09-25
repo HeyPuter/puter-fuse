@@ -80,8 +80,8 @@ func (fs *Filesystem) GetNodeFromCloudItem(cloudItem fao.NodeInfo) fs.InodeEmbed
 func (fs *Filesystem) GetInoFromUID(uid string) uint64 {
 	fs.UidInoMapMutex.RLock()
 	ino, exists := fs.UidInoMap[uid]
-	fmt.Printf("Filesystem mem address: %p\n", fs)
-	fmt.Println("GetInoFromUID (A)", uid, ino, exists)
+	// fmt.Printf("Filesystem mem address: %p\n", fs)
+	// fmt.Println("GetInoFromUID (A)", uid, ino, exists)
 	fs.UidInoMapMutex.RUnlock()
 	if !exists {
 		fs.UidInoMapMutex.Lock()
@@ -95,7 +95,7 @@ func (fs *Filesystem) GetInoFromUID(uid string) uint64 {
 		}
 		fs.UidInoMapMutex.Unlock()
 	}
-	fmt.Println("GetInoFromUID (B)", uid, ino, exists)
+	// fmt.Println("GetInoFromUID (B)", uid, ino, exists)
 	return ino
 }
 
